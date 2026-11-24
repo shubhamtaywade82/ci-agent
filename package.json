@@ -1,36 +1,29 @@
 {
-  "name": "@nemesis-oss/ci-agent",
+  "name": "ci-agent-monorepo",
+  "private": true,
   "version": "0.1.0",
-  "description": "Policy-gated CI agents for PR review, bounded autofix proposals and engineering scans.",
+  "description": "Deterministic-core CI agent: repo-agnostic advisory review/fix/scan orchestrators around an unchanged verify pipeline, with LLM access isolated behind a fail-closed port.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=24" },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "bin": { "nemesis-ci": "./dist/cli.js" },
-  "files": ["dist", "action.yml", "README.md", "LICENSE"],
-  "scripts": {
-    "clean": "rm -rf dist coverage",
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "verify": "npm run typecheck && npm test && npm run build"
+  "engines": {
+    "node": ">=22"
   },
-  "dependencies": {
-    "@nemesis-oss/ollama-sdk": "^1.26.0",
-    "@octokit/rest": "^21.1.1",
-    "commander": "^14.0.0",
-    "js-yaml": "^4.1.0",
-    "minimatch": "^10.0.1",
-    "zod": "^4.6.6"
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -b tsconfig.json",
+    "verify": "npm run clean && npm ci && npm run build && npm test",
+    "lint": "node scripts/lint.mjs",
+    "bundle:action": "node scripts/bundle-action.mjs"
   },
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.0",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
-  },
-  "publishConfig": { "access": "public", "provenance": true }
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
 }

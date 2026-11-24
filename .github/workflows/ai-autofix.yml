@@ -46,7 +46,7 @@ jobs:
           permission-pull-requests: write
       - name: Diagnose failure and create a draft fix PR
         if: steps.app-token.outputs.token != ''
-        uses: ./
+        uses: ./action
         with:
           mode: fix
           pr-number: ${{ github.event.workflow_run.pull_requests[0].number }}

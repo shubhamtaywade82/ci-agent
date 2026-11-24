@@ -1,20 +1,29 @@
+# Dogfood manifest for this repository.
 version: 1
 enabled: true
+
 project:
   name: ci-agent
   type: node-typescript
+  monorepo: true
+
 toolchain:
-  adapter: node
+  adapter: node-npm
   commands:
-    verify: ["npm", "run", "verify"]
+    install: npm ci
+    verify:
+      - npm run build
+      - npm test
+    lint: npm run lint
   commandTimeoutMs: 120000
   passEnv: []
+
 modes:
   review:
     enabled: true
     autonomy: comment
     maxChunks: 6
-    maxInputChars: 90000
+    maxInputTokens: 30000
   fix:
     enabled: true
     autonomy: draft-pr
@@ -22,25 +31,49 @@ modes:
     maxAttempts: 2
     maxFiles: 5
     maxFileBytes: 60000
+    minConfidence: medium
   scan:
     enabled: true
+    schedule: weekly
     autonomy: issue
     maxFindings: 15
+
 policy:
   autoMerge: false
   requireHumanApproval: true
-  allowPaths: ["src/**", "tests/**", "docs/**", "README.md", "*.md"]
-  denyPaths: [".github/**", "**/*.lock", "**/package-lock.json", "**/.env*", "**/*secret*", "**/credentials*", "**/migrations/**"]
+  allowPaths:
+    - packages/**
+    - action/src/**
+    - docs/**
+    - README.md
+    - "*.md"
+  denyPaths:
+    - .github/**
+    - "**/*.lock"
+    - "**/package-lock.json"
+    - "**/pnpm-lock.yaml"
+    - "**/yarn.lock"
+    - "**/.env*"
+    - "**/*secret*"
+    - "**/credentials*"
+    - "**/migrations/**"
+
 dataPolicy:
   classification: public
   sendSourceToCloud: true
   redactPaths: ["**/.env*", "**/*secret*", "**/credentials*"]
+
 llm:
   provider: ollama-cloud
+  hostEnv: OLLAMA_HOST
+  apiKeyEnv: OLLAMA_API_KEY
+  modelEnv: OLLAMA_MODEL
   reviewModelEnv: OLLAMA_MODEL_REVIEW
   fixModelEnv: OLLAMA_MODEL_FIX
   scanModelEnv: OLLAMA_MODEL_SCAN
   timeoutMs: 90000
+
 audit:
+  format: jsonl
   path: .nemesis/audit.jsonl
   uploadArtifact: true
