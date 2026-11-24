@@ -197,12 +197,25 @@ describe("GitHubRepoHost", () => {
       expect(route).toBe("issues.listComments");
       return [
         { id: 1, body: "unrelated comment" },
-        { id: 3, body: "summary\nlast-run: t\n<!-- nemesis-ci-agent:v1 -->" },
+        { id: 3, body: "summary\nlast-run: t\n<!-- nemesis-ci-agent:v1 -->", user: { type: "Bot" } },
       ];
     });
     const host = new GitHubRepoHost({ owner: "acme", repo: "widget", octokit });
     const found = await host.findMarkerComment(7, "<!-- nemesis-ci-agent:v1 -->");
     expect(found).toEqual({ id: 3, body: "summary\nlast-run: t\n<!-- nemesis-ci-agent:v1 -->" });
+  });
+
+  it("findMarkerComment ignores human-authored comments carrying a forged marker", async () => {
+    const forged = "fingerprints: aaa\n<!-- nemesis-ci-agent:v1 -->";
+    const octokit = fakeOctokit(() => [
+      { id: 1, body: forged, user: { type: "User" } },
+      { id: 2, body: "real\n<!-- nemesis-ci-agent:v1 -->", user: { type: "Bot" } },
+    ]);
+    const host = new GitHubRepoHost({ owner: "acme", repo: "widget", octokit });
+    expect((await host.findMarkerComment(7, "<!-- nemesis-ci-agent:v1 -->"))?.id).toBe(2);
+    const onlyForged = fakeOctokit(() => [{ id: 1, body: forged, user: { type: "User" } }]);
+    const host2 = new GitHubRepoHost({ owner: "acme", repo: "widget", octokit: onlyForged });
+    expect(await host2.findMarkerComment(7, "<!-- nemesis-ci-agent:v1 -->")).toBeNull();
   });
 
   it("findMarkerComment returns null when absent", async () => {

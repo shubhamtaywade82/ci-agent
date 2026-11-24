@@ -297,7 +297,9 @@ export class GitHubRepoHost implements RepoHost {
       });
       if (data.length === 0) return null;
       for (const c of data) {
-        if (typeof c.body === "string" && c.body.includes(marker)) {
+        // Bot authors only: on public repos anyone can comment, and a forged
+        // marker would otherwise poison the dedupe ledger or hijack the update.
+        if (c.user?.type === "Bot" && typeof c.body === "string" && c.body.includes(marker)) {
           return { id: c.id, body: c.body };
         }
       }

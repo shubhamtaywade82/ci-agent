@@ -157,6 +157,12 @@ export async function runReview(
       outcome: "skipped",
       detail: { reason: "no reviewable chunks" },
     });
+    const ledger = await loadLedger(host, pr);
+    await updateLedgerComment(host, pr, {
+      lastRunAt: new Date().toISOString(),
+      fingerprints: [...ledger.fingerprints],
+      summary: withCoverage("nemesis ci-agent: no reviewable files in this diff.", skipped),
+    });
     return { posted: false, findings: 0, skipped: skipped.length };
   }
 
@@ -226,7 +232,7 @@ export async function runReview(
     await updateLedgerComment(host, pr, {
       lastRunAt: new Date().toISOString(),
       fingerprints: [],
-      summary: `nemesis ci-agent: 0 actionable findings (${chunks.length} chunk(s) reviewed).`,
+      summary: withCoverage(`nemesis ci-agent: 0 actionable findings (${chunks.length} chunk(s) reviewed).`, skipped),
     });
     return { posted: false, findings: 0, skipped: skipped.length };
   }
@@ -242,7 +248,7 @@ export async function runReview(
     await updateLedgerComment(host, pr, {
       lastRunAt: new Date().toISOString(),
       fingerprints: [...ledger.fingerprints],
-      summary: `nemesis ci-agent: ${findings.length} finding(s) already reported (deduped); ${chunks.length} chunk(s) reviewed.`,
+      summary: withCoverage(`nemesis ci-agent: ${findings.length} finding(s) already reported (deduped); ${chunks.length} chunk(s) reviewed.`, skipped),
     });
     return { posted: false, findings: 0, skipped: skipped.length };
   }
@@ -337,13 +343,7 @@ function renderReviewBody(
 ): string {
   const findingsLines = fresh.map((f) => `- **${f.severity}** ${sanitizeMarkdown(f.message)}`);
   const kept = fitLines(findingsLines, FINDINGS_BUDGET);
-  const coverage =
-    skippedList.length > 0
-      ? [
-          "**Not reviewed:**",
-          ...fitLines(skippedList.map((s) => `- ${sanitizeMarkdown(s)}`), SKIPPED_BUDGET),
-        ].join("\n")
-      : "";
+  const coverage = renderCoverage(skippedList);
   const header = `Reviewed ${chunks} diff chunk(s); ${fresh.length} finding(s).`;
   return [
     "### nemesis ci-agent — review",
@@ -361,6 +361,17 @@ function renderReviewBody(
   ]
     .filter((s) => s !== "")
     .join("\n");
+}
+
+function withCoverage(summary: string, skippedList: string[]): string {
+  const coverage = renderCoverage(skippedList);
+  return coverage ? `${summary}\n\n${coverage}` : summary;
+}
+
+/** "Not reviewed" section so a quiet review never reads as full coverage. */
+function renderCoverage(skippedList: string[]): string {
+  if (skippedList.length === 0) return "";
+  return ["**Not reviewed:**", ...fitLines(skippedList.map((s) => `- ${sanitizeMarkdown(s)}`), SKIPPED_BUDGET)].join("\n");
 }
 
 /** Keep lines until the budget is exhausted; note how many were omitted. */

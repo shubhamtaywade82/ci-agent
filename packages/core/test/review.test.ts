@@ -202,3 +202,34 @@ describe("sanitization of posted review bodies (ported hardening)", () => {
     }
   });
 });
+
+describe("coverage reporting on quiet reviews", () => {
+  const MIXED_DIFF =
+    "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1,3 +1,3 @@\n context\n-old\n+new\n context\n" +
+    "diff --git a/package-lock.json b/package-lock.json\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -1,1 +1,1 @@\n-x\n+y\n";
+
+  it("lists skipped files even when the review finds nothing", async () => {
+    const host = new FakeRepoHost();
+    host.diffs.set(PR.number, MIXED_DIFF);
+    const llm = new FakeLlm();
+    llm.queue.push({ findings: [], summary: "clean" });
+    await runReview(PR, { host, llm, audit: new InMemoryAudit(), manifest: testManifest() });
+    const body = host.markerComments.get(PR.number)!.body;
+    expect(body).toContain("0 actionable findings");
+    expect(body).toContain("Not reviewed");
+    expect(body).toContain("package-lock.json");
+  });
+
+  it("tells the PR nothing was reviewable instead of staying silent, and keeps the ledger", async () => {
+    const host = new FakeRepoHost();
+    host.diffs.set(PR.number, MIXED_DIFF.replaceAll("src/a.ts", "package-lock.json"));
+    host.markerComments.set(PR.number, { id: 5, body: `old\nlast-run: t\nfingerprints: aaa,bbb\n${MARKER}` });
+    const llm = new FakeLlm();
+    const out = await runReview(PR, { host, llm, audit: new InMemoryAudit(), manifest: testManifest() });
+    expect(out.posted).toBe(false);
+    const body = host.markerComments.get(PR.number)!.body;
+    expect(body).toContain("no reviewable files");
+    expect(body).toContain("Not reviewed");
+    expect(body).toContain("fingerprints: aaa,bbb");
+  });
+});
