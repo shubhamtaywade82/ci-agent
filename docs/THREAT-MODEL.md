@@ -12,7 +12,7 @@
 | Credential misuse | Short-lived repository-scoped GitHub App token |
 | Secrets exposed to scan commands | Commands run with a minimal environment; explicit passEnv allowlist; allowlisted values redacted from evidence |
 | Runaway command | Per-command deadline and process termination |
-| CI retry loop | Workflow attempt budget; no auto-merge |
+| Duplicate autofix workflow runs | Deterministic branch per PR head SHA; existing draft/orphan branch detection; workflow concurrency |
 | Audit leakage | Store hashes and metadata only |
 
 ## Residual risk

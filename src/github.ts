@@ -19,6 +19,16 @@ export class GitHubRepoHost implements RepoHost {
   return issues.some(issue=>issue.body?.includes(marker)??false);
  }
  async createIssue(input:{title:string;body:string;labels?:string[]}):Promise<void>{await this.octokit.issues.create({owner:this.owner,repo:this.repo,...input});}
+ async findExistingAgentFix(branchName:string):Promise<{pullRequestUrl:string|null;branchExists:boolean}>{
+  const [pulls]=await Promise.all([
+   this.octokit.paginate(this.octokit.pulls.list,{owner:this.owner,repo:this.repo,state:"open",head:this.owner+":"+branchName,per_page:100})
+  ]);
+  const existing=pulls.find(pull=>pull.head.ref===branchName&&pull.draft);
+  let branchExists=false;
+  try{await this.octokit.git.getRef({owner:this.owner,repo:this.repo,ref:"heads/"+branchName});branchExists=true;}
+  catch(error){if((error as {status?:number}).status!==404)throw error;}
+  return {pullRequestUrl:existing?.html_url??null,branchExists};
+ }
  async createDraftPullRequest(input:DraftPullRequestInput):Promise<{url:string}>{
   if(!input.branchName.startsWith("nemesis-agent/fix-"))throw new Error("Refusing non-agent branch prefix.");
   const protectedFile=input.files.find(file=>file.path.startsWith(".github/")||/(^|\/)(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle|\.env)/i.test(file.path)||/\.lock$/i.test(file.path)||/(^|\/)migrations?\//i.test(file.path));

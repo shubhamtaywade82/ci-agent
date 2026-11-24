@@ -13,6 +13,7 @@ export interface RepoHost {
   postComment(number:number,body:string):Promise<void>;
   findOpenIssueByMarker(marker:string):Promise<boolean>;
   createIssue(input:{title:string;body:string;labels?:string[]}):Promise<void>;
+  findExistingAgentFix(branchName:string):Promise<{pullRequestUrl:string|null;branchExists:boolean}>;
   createDraftPullRequest(input:DraftPullRequestInput):Promise<{url:string}>;
 }
 export interface WorkflowRunSnapshot { id:string; repository:string; conclusion:string|null; sha:string; branch:string; attempt:number; pullRequest:number|null; headRepoFullName:string|null }

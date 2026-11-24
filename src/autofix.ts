@@ -20,6 +20,10 @@ export async function runAutofix(input:{runId:string;pr:number;repository:string
  if(pull.headSha!==run.sha)return skipped("PR head SHA changed since the failed workflow run.");
  if(!pull.labels.includes(config.modes.fix.optInLabel))return skipped("Missing explicit autofix opt-in label: "+config.modes.fix.optInLabel);
  if(!model.trim())throw new Error("The configured autofix model variable is missing.");
+ const branchName="nemesis-agent/fix-"+pr+"-"+run.sha.slice(0,12);
+ const existing=await repo.findExistingAgentFix(branchName);
+ if(existing.pullRequestUrl)return skipped("A draft autofix PR already exists for this PR head: "+existing.pullRequestUrl);
+ if(existing.branchExists)return skipped("The deterministic autofix branch already exists without an open draft PR; manual inspection is required.");
  const logs=redactText((await ci.getFailedLogs(runId)).slice(0,30000));
  const proposal=await llm.generateStructured({model,system:SYSTEM,prompt:"Repository: "+repository+"\nFailed workflow run: "+runId+"\nCommit: "+run.sha+"\nAttempt: "+run.attempt+"\nFailure logs:\n"+logs,schema:PatchProposalSchema,timeoutMs:config.llm.timeoutMs,maxOutputTokens:12000});
  const decision=validatePatchProposal(proposal,config);
@@ -29,7 +33,6 @@ export async function runAutofix(input:{runId:string;pr:number;repository:string
   metadata:{runId,pr,files:proposal.files.length}
  }));
  if(!decision.allowed)return {applied:false,reasons:decision.reasons};
- const branchName="nemesis-agent/fix-"+runId+"-a"+run.attempt;
  const created=await repo.createDraftPullRequest({
   baseBranch:pull.headBranch,baseSha:pull.headSha,branchName,
   title:"[Nemesis CI] Fix: "+proposal.diagnosis.slice(0,70),

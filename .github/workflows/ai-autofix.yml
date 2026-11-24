@@ -3,6 +3,9 @@ on:
   workflow_run:
     workflows: ["verify"]
     types: [completed]
+concurrency:
+  group: ci-agent-autofix-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.id }}
+  cancel-in-progress: false
 permissions:
   contents: read
   actions: read
