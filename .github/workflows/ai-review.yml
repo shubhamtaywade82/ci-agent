@@ -42,9 +42,8 @@ jobs:
           mode: review
           pr-number: ${{ github.event.issue.number || github.event.client_payload.pr_number }}
           expected-head-sha: ${{ github.event.client_payload.head_sha || '' }}
-        env:
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OLLAMA_MODEL_REVIEW: ${{ vars.OLLAMA_MODEL_REVIEW }}
+          ollama-api-key: ${{ secrets.OLLAMA_API_KEY }}
+          model-review: ${{ vars.OLLAMA_MODEL_REVIEW }}
       - name: Upload review audit
         if: always()
         uses: actions/upload-artifact@v4

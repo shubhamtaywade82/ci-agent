@@ -49,9 +49,8 @@ jobs:
           pr-number: ${{ github.event.workflow_run.pull_requests[0].number }}
           workflow-run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ steps.app-token.outputs.token }}
-        env:
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OLLAMA_MODEL_FIX: ${{ vars.OLLAMA_MODEL_FIX }}
+          ollama-api-key: ${{ secrets.OLLAMA_API_KEY }}
+          model-fix: ${{ vars.OLLAMA_MODEL_FIX }}
       - name: Explain why autofix was skipped
         if: steps.app-credentials.outputs.configured != 'true'
         run: echo "::notice::Autofix skipped. Configure CI_AGENT_APP_ID and CI_AGENT_APP_PRIVATE_KEY; default GITHUB_TOKEN is not used for fix commits."

@@ -99,7 +99,9 @@ The dispatcher should listen for `pull_request` opened/synchronize/reopened even
 
 GitHub's `issue_comment` event runs workflow code from the default branch, and the review workflow checks out only trusted default-branch code. It reads PR diffs through the GitHub API; it never checks out or executes PR source.
 
-For other repositories, copy the included `ai-review.yml` pattern and configure `OLLAMA_API_KEY` plus `OLLAMA_MODEL_REVIEW`. The review workflow needs `contents: read`, `pull-requests: read` and `issues: write` permissions.
+The composite Action installs/builds dependencies before the final execution step. GitHub/Ollama credentials are passed as Action inputs and injected only into the final execution step; install scripts do not receive those credentials.
+
+For other repositories, copy the included `ai-review.yml` pattern and configure the Action inputs `ollama-api-key` and `model-review`. The review workflow needs `contents: read`, `pull-requests: read` and `issues: write` permissions.
 
 Configure repository variables/secrets:
 

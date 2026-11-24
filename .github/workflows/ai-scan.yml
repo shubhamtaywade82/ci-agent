@@ -17,9 +17,8 @@ jobs:
       - uses: ./
         with:
           mode: scan
-        env:
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OLLAMA_MODEL_SCAN: ${{ vars.OLLAMA_MODEL_SCAN }}
+          ollama-api-key: ${{ secrets.OLLAMA_API_KEY }}
+          model-scan: ${{ vars.OLLAMA_MODEL_SCAN }}
       - name: Upload scan audit
         if: always()
         uses: actions/upload-artifact@v4

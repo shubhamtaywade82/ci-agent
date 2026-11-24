@@ -13,6 +13,18 @@ inputs:
   github-token:
     description: Scoped GitHub token. Autofix requires a GitHub App installation token.
     required: false
+  ollama-api-key:
+    description: Ollama Cloud API key (injected only into the agent execution step)
+    required: false
+  model-review:
+    description: Ollama model tag for PR review
+    required: false
+  model-fix:
+    description: Ollama model tag for autofix
+    required: false
+  model-scan:
+    description: Ollama model tag for improvement scans
+    required: false
   pr-number:
     description: Pull request number
     required: false
@@ -43,8 +55,8 @@ runs:
         INPUT_PR_NUMBER: ${{ inputs.pr-number }}
         INPUT_EXPECTED_HEAD_SHA: ${{ inputs.expected-head-sha }}
         INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow-run-id }}
-        OLLAMA_API_KEY: ${{ env.OLLAMA_API_KEY }}
-        OLLAMA_MODEL_REVIEW: ${{ env.OLLAMA_MODEL_REVIEW }}
-        OLLAMA_MODEL_FIX: ${{ env.OLLAMA_MODEL_FIX }}
-        OLLAMA_MODEL_SCAN: ${{ env.OLLAMA_MODEL_SCAN }}
+        OLLAMA_API_KEY: ${{ inputs.ollama-api-key }}
+        OLLAMA_MODEL_REVIEW: ${{ inputs.model-review }}
+        OLLAMA_MODEL_FIX: ${{ inputs.model-fix }}
+        OLLAMA_MODEL_SCAN: ${{ inputs.model-scan }}
       run: node "${{ github.action_path }}/dist/action.js"
