@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Release pipeline: package metadata (`files`, `publishConfig`, `repository`), per-package README/LICENSE, `npm run verify:release` with a tarball contents check, release-please (lockstep versions) and OIDC trusted publishing with provenance, CodeQL and a PR-title check.
+- README: corrected the published Action reference.
 - Hardening ported into the monorepo: commenter write-permission check, comment size budgets, sanitized model markdown, `.nemesis/**` always denied, autofix sees current file contents and rejects patches touching unseen files, log tail kept, `npm ci --ignore-scripts`, job-level review concurrency.
 - Marker/ledger comments are only trusted when authored by a bot; a forged marker can no longer poison the dedupe ledger or hijack the update.
 - Reviews with no findings (or nothing reviewable) still report which files were not reviewed.

@@ -19,7 +19,9 @@
     "verify": "npm run clean && npm ci && npm run build && npm test",
     "verify:offline": "npm run typecheck && npm test && npm run build",
     "lint": "node scripts/lint.mjs",
-    "bundle:action": "node scripts/bundle-action.mjs"
+    "bundle:action": "node scripts/bundle-action.mjs",
+    "pack:check": "node scripts/check-pack.mjs",
+    "verify:release": "npm run lint && npm run build && npm test && npm run pack:check"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

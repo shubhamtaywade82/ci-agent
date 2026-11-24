@@ -150,7 +150,7 @@ code from the default branch; the workflow checks out only trusted
 default-branch code and reads PR diffs through the GitHub API — it never checks
 out or executes PR source.
 
-For other repositories, use the published Action (`uses: nemesis-oss/ci-agent@v1`,
+For other repositories, use the published Action (`uses: shubhamtaywade82/ci-agent/action@v1`,
 `mode: review`) or copy the included `ai-review.yml` pattern. The review workflow
 needs `contents: read`, `pull-requests: write` (posting the review) and
 `issues: write` permissions.
@@ -205,3 +205,20 @@ nemesis-ci evidence --config .nemesis/ci-agent.yml
 - `docs/adoption.md` — step-by-step adoption guide
 - `docs/manifest-reference.md` — full manifest field reference
 - `docs/ARCHITECTURE.md`, `docs/THREAT-MODEL.md`, `docs/CONFIGURATION.md`, `docs/ROADMAP.md`
+
+## Releasing
+
+Packages are published to npm under the `@nemesis-oss` scope, in lockstep, with
+provenance, via npm trusted publishing (OIDC; no npm token is stored).
+
+- `release-please.yml` keeps a release PR open from Conventional Commits; merging
+  it tags the release and calls `publish.yml`.
+- `publish.yml` runs `npm run verify:release` (lint, build, tests and a tarball
+  contents check) and publishes `core`, `ollama-cloud`, `github`, `toolchains`,
+  then `cli`, skipping versions already on the registry.
+- **One-time setup on npmjs.com:** for each of the five packages, add a trusted
+  publisher for repository `shubhamtaywade82/ci-agent`, workflow
+  `release-please.yml`. A package that has never been published may need its first
+  `0.1.0` published manually before that setting is available.
+- The first `0.1.0` publish is run by hand: Actions → Release Please → Run
+  workflow. Later releases are driven by the release PR.

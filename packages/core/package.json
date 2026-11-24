@@ -23,5 +23,24 @@
   },
   "devDependencies": {
     "yaml": "^2.9.0"
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamtaywade82/ci-agent.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/shubhamtaywade82/ci-agent#readme",
+  "bugs": {
+    "url": "https://github.com/shubhamtaywade82/ci-agent/issues"
   }
 }
