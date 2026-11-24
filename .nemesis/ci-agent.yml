@@ -1,0 +1,63 @@
+# Dogfood manifest for this repository.
+version: 1
+enabled: true
+
+project:
+  name: ci-agent
+  type: node
+  monorepo: true
+
+toolchain:
+  adapter: node-npm
+  commands:
+    install: npm ci
+    verify:
+      - npm run build
+      - npm test
+    lint: npm run lint
+
+modes:
+  review:
+    enabled: true
+    autonomy: comment
+    maxChunks: 6
+    maxInputTokens: 30000
+  fix:
+    enabled: true
+    autonomy: draft-pr
+    optInLabel: nemesis:autofix
+    maxAttempts: 2
+    maxFiles: 5
+    maxFileBytes: 60000
+    minConfidence: medium
+  scan:
+    enabled: true
+    schedule: weekly
+    autonomy: issue
+
+policy:
+  autoMerge: false
+  requireHumanApproval: true
+  allowPaths:
+    - packages/**
+    - action/src/**
+    - docs/**
+  denyPaths:
+    - .github/**
+    - "**/package-lock.json"
+    - "**/.env*"
+    - "**/*secret*"
+
+dataPolicy:
+  classification: public
+  sendSourceToCloud: true
+
+llm:
+  provider: ollama-cloud
+  hostEnv: OLLAMA_HOST
+  apiKeyEnv: OLLAMA_API_KEY
+  modelEnv: OLLAMA_MODEL
+
+audit:
+  format: jsonl
+  uploadArtifact: true

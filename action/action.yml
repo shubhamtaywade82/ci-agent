@@ -1,0 +1,43 @@
+name: nemesis ci-agent
+description: >-
+  Advisory CI agent: LLM-powered PR review, failure-diagnosis draft PRs, and
+  scheduled improvement scans around your existing deterministic pipeline.
+  Fail-closed, policy-gated, never auto-merges. Requires secrets.OLLAMA_API_KEY
+  and vars.OLLAMA_MODEL.
+author: nemesis-oss
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  mode:
+    description: "auto | review | fix | scan | doctor"
+    required: false
+    default: auto
+  config:
+    description: "Path to the policy manifest (.nemesis/ci-agent.yml)"
+    required: false
+    default: .nemesis/ci-agent.yml
+  ollama-host:
+    description: "Ollama Cloud endpoint"
+    required: false
+    default: https://ollama.com
+  ollama-api-key:
+    description: "Ollama Cloud API key (usually secrets.OLLAMA_API_KEY)"
+    required: true
+  ollama-model:
+    description: "Pinned model tag (usually vars.OLLAMA_MODEL)"
+    required: true
+  github-app-id:
+    description: "GitHub App id for fix mode (App token makes CI trigger on the draft PR)"
+    required: false
+    default: ""
+  github-app-private-key:
+    description: "GitHub App private key for fix mode"
+    required: false
+    default: ""
+
+runs:
+  using: node20
+  main: dist/index.js

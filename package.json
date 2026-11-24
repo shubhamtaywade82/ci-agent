@@ -1,0 +1,29 @@
+{
+  "name": "ci-agent-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Deterministic-core CI agent: repo-agnostic advisory review/fix/scan orchestrators around an unchanged verify pipeline, with LLM access isolated behind a fail-closed port.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -b tsconfig.json",
+    "verify": "npm run clean && npm ci && npm run build && npm test",
+    "lint": "node scripts/lint.mjs",
+    "bundle:action": "node scripts/bundle-action.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

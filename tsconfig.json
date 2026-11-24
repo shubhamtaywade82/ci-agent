@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/ollama-cloud" },
+    { "path": "packages/github" },
+    { "path": "packages/toolchains" },
+    { "path": "packages/cli" }
+  ]
+}
