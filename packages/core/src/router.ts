@@ -87,11 +87,33 @@ export function route(input: RouterInput): RoutingDecision | { skip: "reason"; r
     };
   }
 
-  if (eventName === "workflow_dispatch" || eventName === "repository_dispatch") {
+  if (eventName === "workflow_dispatch" || eventName === "repository_dispatch" || eventName === "issue_comment") {
     const mode = input.selectedMode === "fix" || input.selectedMode === "scan" || input.selectedMode === "review" || input.selectedMode === "triage"
       ? (input.selectedMode as AgentMode)
       : undefined;
     if (!mode) return { skip: "reason", reason: `no valid mode selected for ${eventName}` };
+    if (mode !== "review" && eventName === "issue_comment") {
+      // A comment may only trigger the advisory review pipeline.
+      return { skip: "reason", reason: `issue_comment can only select review (got ${mode})` };
+    }
+    // issue_comment carries the PR through the synthetic pull_request payload
+    // built by the action entrypoint; pr_number comes with it.
+    if (eventName === "issue_comment") {
+      if (!input.pr) return { skip: "reason", reason: "issue_comment without a pull_request reference" };
+      const isFork = input.pr.head.repo.full_name !== input.repo;
+      return {
+        task: {
+          mode,
+          repo: input.repo,
+          prNumber: input.pr.number,
+          sha: input.pr.head.sha,
+          isFork,
+          headRepoFullName: input.pr.head.repo.full_name,
+          headBranch: input.pr.head.ref,
+        },
+        via: "issue_comment → review",
+      };
+    }
     return {
       task: { mode, repo: input.repo, sha: input.defaultBranch, isFork: false },
       via: `${eventName} → ${mode}`,
@@ -107,4 +129,5 @@ export const EVENT_MODE_TABLE: Record<string, AgentMode | "skip"> = {
   schedule: "scan",
   workflow_dispatch: "review",
   repository_dispatch: "review",
+  issue_comment: "review",
 };

@@ -116,7 +116,7 @@ describe("runFix", () => {
     llm.queue.push(PROPOSAL);
     const out = await runFix(
       { runId: "42", repo: "acme/widget", isFork: false },
-      { host, ci, llm, audit, manifest: testManifest(), repoPaths: [] },
+      { host, ci, llm, audit, manifest: testManifest(), repoPaths: ["packages/core/src/math.ts"] },
     );
     expect(out.outcome).toBe("fix-pr");
     expect(out.attempt).toBe(2);
@@ -329,5 +329,24 @@ describe("runScan", () => {
     });
     expect(out.outcome).toBe("aborted");
     expect(audit.eventsOf("llm-reject")).toHaveLength(1);
+  });
+});
+
+describe("runFix — unseen-file rejection (ported hardening)", () => {
+  it("rejects a proposal that patches a file never shown to the model", async () => {
+    const { host, ci, audit, llm } = setup();
+    // The log implicates math.ts, so only math.ts is loaded and shown; the
+    // proposal below touches a different, unseen file.
+    llm.queue.push({
+      ...PROPOSAL,
+      files: [{ path: "packages/core/src/unseen.ts", content: "evil" }],
+    });
+    const out = await runFix(
+      { runId: "42", repo: "acme/widget", isFork: false },
+      { host, ci, llm, audit, manifest: testManifest(), repoPaths: ["packages/core/src/math.ts"] },
+    );
+    expect(out.outcome).toBe("comment-only");
+    expect(out.reason).toContain("not shown to the model");
+    expect(host.branches).toHaveLength(0);
   });
 });

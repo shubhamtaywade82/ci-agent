@@ -11,6 +11,7 @@ import { Ajv } from "ajv";
 import { SCAN_RESULT_SCHEMA } from "./schemas.js";
 import { sha256 } from "./fingerprint.js";
 import { redactSecrets } from "./glob.js";
+import { sanitizeMarkdown } from "./text.js";
 import { evaluatePolicy } from "./policy.js";
 import type { AgentManifest } from "./manifest.js";
 import type { AuditStore, LlmPort, EvidenceBundle } from "./types.js";
@@ -146,17 +147,22 @@ export async function runScan(
   }
 
   for (const issue of result.issues) {
+    // Issue identity keys on the evidence backing the issue (not the repo
+    // SHA) so an unresolved failure does not open a fresh issue every run —
+    // dedupe is the adapter's marker-comment/issue search responsibility,
+    // keyed by the evidence fingerprint embedded in the body.
     await deps.createIssue({
-      title: `[${issue.severity}] ${issue.title}`,
+      title: `[${issue.severity}] ${sanitizeMarkdown(issue.title)}`,
       body: [
         `**Category:** ${issue.category}`,
         "",
-        issue.description,
+        sanitizeMarkdown(issue.description),
         "",
-        `**Recommendation:** ${issue.recommendation}`,
+        `**Recommendation:** ${sanitizeMarkdown(issue.recommendation)}`,
         "",
         "---",
         "Created by nemesis ci-agent scheduled scan. Advisory only; no action was taken on the repository.",
+        `<!-- nemesis-ci-agent:scan:${sha256(evidence.repo + issue.title + issue.category)} -->`,
       ].join("\n"),
     });
   }

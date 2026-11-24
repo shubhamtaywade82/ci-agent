@@ -49,6 +49,8 @@ export interface GithubPayload {
   };
   repository?: { default_branch?: string; full_name?: string };
   inputs?: { mode?: string };
+  /** issue_comment payload: the comment author (permission-checked). */
+  comment?: { user?: { login?: string } };
   /** repository_dispatch payload */
   client_payload?: { mode?: string; run_id?: string; pr_number?: number; sha?: string };
 }
@@ -72,6 +74,8 @@ export interface ComposedEvent {
   selectedMode?: string;
   runId?: string;
   prNumber?: number;
+  /** Comment author login for issue_comment-triggered runs. */
+  commentLogin?: string;
 }
 
 export function composeEvent(env: GithubEnv, payload: GithubPayload): ComposedEvent {
@@ -86,6 +90,7 @@ export function composeEvent(env: GithubEnv, payload: GithubPayload): ComposedEv
     selectedMode,
     runId: payload.client_payload?.run_id ?? (env.runId ?? undefined),
     prNumber: payload.client_payload?.pr_number,
+    commentLogin: payload.comment?.user?.login,
   };
 }
 

@@ -34,6 +34,7 @@ const CONFIDENCE_RANK = { low: 1, medium: 2, high: 3 } as const;
 const ALWAYS_DENY: readonly RegExp[] = [
   /^\.github\//i,
   /(^|\/)\.env(?:\.|$)/i,
+  /(^|\/)\.nemesis\//i,
   /(^|\/)(?:secrets?|credentials?)(?:\/|\.|$)/i,
   /(^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|npm-shrinkwrap\.json)$/i,
   /(^|\/)(?:package\.json|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|.*\.csproj)$/i,

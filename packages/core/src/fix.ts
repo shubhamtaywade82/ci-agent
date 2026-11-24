@@ -20,6 +20,7 @@ import { PATCH_PROPOSAL_SCHEMA } from "./schemas.js";
 import { sha256, truncate } from "./fingerprint.js";
 import { minimizeEvidence } from "./evidence.js";
 import { redactSecrets } from "./glob.js";
+import { sanitizeMarkdown } from "./text.js";
 import { evaluatePolicy } from "./policy.js";
 import type { AgentManifest } from "./manifest.js";
 import type {
@@ -132,8 +133,10 @@ export async function runFix(
     return skip(`PR head repo ${pr.headRepoFullName} differs from ${input.repo} (fork)`);
   }
 
-  // Collect and minimize evidence.
-  const logs = await ci.getFailedLogs(runId_of(run.id, input.runId));
+  // Collect and minimize evidence. Failures surface at the end of a log;
+  // the minimized context keeps the tail, not the setup noise.
+  const rawLogs = await ci.getFailedLogs(runId_of(run.id, input.runId));
+  const logs = rawLogs.length > 60_000 ? rawLogs.slice(-60_000) : rawLogs;
   const { context, implicatedFiles } = minimizeEvidence(logs, deps.repoPaths);
 
   // Fetch implicated file contents at the PR head SHA (data only).
@@ -232,13 +235,20 @@ export async function runFix(
     },
     proposal,
   });
-  if (decision.action === "reject") {
+  // Unseen-file rejection (ported from hardening): the model may only modify
+  // files whose current content was actually shown to it in the prompt.
+  const shown = new Set(fileContents.keys());
+  const unseen = proposal.files
+    .filter((f) => !shown.has(f.path))
+    .map((f) => `patch touches a file that was not shown to the model: ${f.path}`);
+  const reasons = [...decision.reasons, ...unseen];
+  if (reasons.length) {
     await audit.append(auditEv(repoOf(input), mode, task, "proposal-reject", {
       outcome: "aborted",
       policy: decision,
-      detail: { stage: "draft-fix-pr" },
+      detail: { stage: "draft-fix-pr", reasons },
     }));
-    return { outcome: "comment-only", reason: decision.reasons.join("; "), attempt };
+    return { outcome: "comment-only", reason: reasons.join("; "), attempt };
   }
 
   // Materialize the branch and PR. The fix is a STACKED draft PR against
@@ -335,15 +345,15 @@ function renderFixBody(
   return [
     "### nemesis ci-agent — proposed fix",
     "",
-    `**Diagnosis:** ${proposal.diagnosis}`,
+    `**Diagnosis:** ${sanitizeMarkdown(proposal.diagnosis)}`,
     "",
     `**Confidence:** ${proposal.confidence} · **Risk:** ${proposal.risk} · **Attempt:** ${attempt}`,
     "",
     "**Rationale:**",
-    proposal.rationale,
+    sanitizeMarkdown(proposal.rationale),
     "",
     "**Expected validation:**",
-    ...proposal.expectedValidation.map((v) => `- ${v}`),
+    ...proposal.expectedValidation.map((v) => `- ${sanitizeMarkdown(v)}`),
     "",
     `Failed run: ${runUrl}`,
     "",

@@ -5,6 +5,7 @@ import {
   matchesAny,
   redactSecrets,
 } from "../src/glob.js";
+import { redactText, sanitizeMarkdown } from "../src/text.js";
 
 describe("patternToRegex", () => {
   it("matches a direct path", () => {
@@ -110,5 +111,20 @@ describe("redactSecrets", () => {
   it("leaves ordinary text untouched", () => {
     const text = "the function add(a, b) returns a + b";
     expect(redactSecrets(text)).toBe(text);
+  });
+});
+
+describe("redactText / sanitizeMarkdown (ported hardening)", () => {
+  it("redacts key=value credential shapes", () => {
+    expect(redactText('api_key = "abcd1234efgh5678"')).toContain("[REDACTED]");
+    expect(redactText("password: supersecretvalue123")).toContain("[REDACTED]");
+  });
+
+  it("sanitizeMarkdown escapes HTML, mentions and images", () => {
+    const out = sanitizeMarkdown("<script>@admin ![img](http://x)</script>");
+    expect(out).toContain("&lt;script>");
+    expect(out).not.toContain("<script>");
+    expect(out).not.toContain("@admin");
+    expect(out).toContain("!\\[img]");
   });
 });

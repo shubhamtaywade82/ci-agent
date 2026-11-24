@@ -9,3 +9,4 @@ coverage/
 
 # Agent runtime audit output
 .nemesis/audit.jsonl
+.omc

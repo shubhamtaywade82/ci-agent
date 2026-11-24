@@ -166,13 +166,16 @@ export class GitHubRepoHost implements RepoHost {
       encoding: "base64",
     });
 
-    // Read the current tree to preserve unrelated entries.
+    // Read the current tree to preserve unrelated entries, and the existing
+    // file mode so rewriting a file never silently drops its executable bit
+    // (ported from upstream hardening).
     const commit = await this.octokit.rest.git.getCommit({
       owner: this.owner,
       repo: this.repo,
       commit_sha: parentSha,
     });
     const baseTree = commit.data.tree.sha;
+    const existingMode = await this.existingFileMode(baseTree, path);
 
     const tree = await this.octokit.rest.git.createTree({
       owner: this.owner,
@@ -181,7 +184,7 @@ export class GitHubRepoHost implements RepoHost {
       tree: [
         {
           path,
-          mode: "100644",
+          mode: existingMode,
           type: "blob",
           sha: blob.data.sha,
         },
@@ -204,6 +207,26 @@ export class GitHubRepoHost implements RepoHost {
       sha: newCommit.data.sha,
       force: false,
     });
+  }
+
+  /**
+   * Preserve the executable bit when rewriting a file. A truncated tree
+   * (huge repos) falls back to 100644 for unseen paths.
+   */
+  private async existingFileMode(treeSha: string, path: string): Promise<"100644" | "100755"> {
+    try {
+      const { data } = await this.octokit.rest.git.getTree({
+        owner: this.owner,
+        repo: this.repo,
+        tree_sha: treeSha,
+        recursive: "1",
+      });
+      const entry = data.tree.find((e) => e.path === path);
+      if (entry?.mode === "100755") return "100755";
+      return "100644";
+    } catch {
+      return "100644";
+    }
   }
 
   async createPullRequest(input: CreatePullRequestInput): Promise<PullRequestCreated> {
@@ -324,5 +347,14 @@ export class GitHubRepoHost implements RepoHost {
       body,
     });
     return data.id;
+  }
+
+  async getCollaboratorPermission(login: string): Promise<string> {
+    const { data } = await this.octokit.rest.repos.getCollaboratorPermissionLevel({
+      owner: this.owner,
+      repo: this.repo,
+      username: login,
+    });
+    return data.permission;
   }
 }

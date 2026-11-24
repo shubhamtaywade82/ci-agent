@@ -202,3 +202,88 @@ describe("manifest defaults re-exported through CLI", () => {
     expect(parseManifest(DEFAULT_MANIFEST)).toEqual(DEFAULT_MANIFEST);
   });
 });
+
+describe("run — commenter permission gate (ported hardening)", () => {
+  function commentEnv() {
+    return { GITHUB_EVENT_NAME: "issue_comment", GITHUB_REPOSITORY: "acme/widget", GH_TOKEN: "t" };
+  }
+  function commentPayload(login?: string) {
+    return JSON.stringify({
+      comment: { user: login ? { login } : undefined },
+      pull_request: {
+        number: 7,
+        draft: false,
+        head: { ref: "feat/x", sha: "abc", repo: { full_name: "acme/widget" } },
+        base: { ref: "main", repo: { full_name: "acme/widget" } },
+      },
+      repository: { default_branch: "main", full_name: "acme/widget" },
+      inputs: { mode: "review" },
+    });
+  }
+
+  it("skips when the commenter lacks write access", async () => {
+    const configPath = await writeManifest(MANIFEST);
+    const audit = new InMemoryAuditStore();
+    const host: RepoHost = {
+      async getPullRequest() { throw new Error("must not be reached"); },
+      async getDiff() { return ""; },
+      async getFile() { return ""; },
+      async listPullRequestsForSha() { return []; },
+      async createBranch() {},
+      async putFile() {},
+      async createPullRequest() { return { number: 1, htmlUrl: "u" }; },
+      async postReview() {},
+      async createIssue() {},
+      async findMarkerComment() { return null; },
+      async updateComment() {},
+      async createComment() { return 1; },
+      async getCollaboratorPermission() { return "read"; },
+    };
+    const llm: LlmPort = { async structured() { return { findings: [], summary: "" } as never; } };
+    const ci: CiProvider = {
+      async getRun() { return { id: 1, name: "ci", conclusion: "success", headSha: "a", headBranch: "m", htmlUrl: "u" }; },
+      async getFailedLogs() { return ""; },
+    };
+    const r = await run({
+      env: commentEnv(),
+      configPath,
+      overrides: { ...overrides({ llm, host, ci, audit }), payload: commentPayload("rando") },
+      stdout: () => {},
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.outcome).toBe("skipped");
+    expect(r.reason).toContain("lacks write access");
+  });
+
+  it("requires a resolvable comment author on issue_comment events", async () => {
+    const configPath = await writeManifest(MANIFEST);
+    const audit = new InMemoryAuditStore();
+    const host: RepoHost = {
+      async getPullRequest() { throw new Error("must not be reached"); },
+      async getDiff() { return ""; },
+      async getFile() { return ""; },
+      async listPullRequestsForSha() { return []; },
+      async createBranch() {},
+      async putFile() {},
+      async createPullRequest() { return { number: 1, htmlUrl: "u" }; },
+      async postReview() {},
+      async createIssue() {},
+      async findMarkerComment() { return null; },
+      async updateComment() {},
+      async createComment() { return 1; },
+    };
+    const llm: LlmPort = { async structured() { return { findings: [], summary: "" } as never; } };
+    const ci: CiProvider = {
+      async getRun() { return { id: 1, name: "ci", conclusion: "success", headSha: "a", headBranch: "m", htmlUrl: "u" }; },
+      async getFailedLogs() { return ""; },
+    };
+    const r = await run({
+      env: commentEnv(),
+      configPath,
+      overrides: { ...overrides({ llm, host, ci, audit }), payload: commentPayload(undefined) },
+      stdout: () => {},
+    });
+    expect(r.exitCode).toBe(2);
+    expect(r.outcome).toBe("config-error");
+  });
+});

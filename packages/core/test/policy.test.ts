@@ -285,3 +285,24 @@ describe("FakeLlm sanity (test infrastructure itself)", () => {
     expect(llm.calls[0]!.system).toBe("s");
   });
 });
+
+describe("ALWAYS_DENY — .nemesis manifest paths (ported hardening)", () => {
+  it("denies the agent's own manifest directory", () => {
+    const m = testManifest({ policy: { allowPaths: ["**"] } });
+    const proposal: PatchProposal = {
+      diagnosis: "d",
+      confidence: "high",
+      risk: "low",
+      files: [{ path: ".nemesis/ci-agent.yml", content: "version: 1\nenabled: false\n" }],
+      expectedValidation: [],
+      rationale: "r",
+    };
+    const d = evaluatePolicy(m, {
+      action: "draft-fix-pr",
+      task: { mode: "fix", repo: "r", sha: "s", isFork: false },
+      proposal,
+    });
+    expect(d.action).toBe("reject");
+    expect(d.reasons.join(" ")).toContain(".nemesis");
+  });
+});

@@ -176,3 +176,29 @@ describe("parseLedger", () => {
     expect(ledger.lastRunAt).toBe("2026-11-24T01:00:00Z");
   });
 });
+
+describe("sanitization of posted review bodies (ported hardening)", () => {
+  it("neutralizes mentions and raw HTML in model findings", async () => {
+    const host = new FakeRepoHost();
+    host.diffs.set(PR.number, "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1,3 +1,3 @@\n context\n-old\n+new\n context\n");
+    const audit = new InMemoryAudit();
+    const llm = new FakeLlm();
+    llm.queue.push({
+      findings: [
+        { path: "src/a.ts", line: 2, severity: "major", message: "pings @owner and <script>alert(1)</script>" },
+      ],
+      summary: "injected <b>markup</b> @someone",
+    });
+    const out = await runReview(PR, { host, llm, audit, manifest: testManifest() });
+    expect(out.posted).toBe(true);
+    const review = host.reviews[0]!.review;
+    // `<` is escaped so nothing renders as raw HTML; the closing bracket is inert.
+    expect(review.body).toContain("&lt;script>");
+    expect(review.body).not.toContain("<script>");
+    // Mention is broken up by a zero-width space after @.
+    expect(review.body).not.toContain("@owner");
+    for (const c of review.comments) {
+      expect(c.body).not.toContain("<script>");
+    }
+  });
+});

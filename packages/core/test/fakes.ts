@@ -170,6 +170,7 @@ export class FakeCiProvider implements CiProvider {
 FAIL packages/core/test/math.test.ts > add
 AssertionError: expected 5 to be 3
  ❯ packages/core/test/math.test.ts:12:31
+    at add (packages/core/src/math.ts:2:10)
     at Object.<anonymous> (packages/core/test/math.test.ts:12:31)
 Tests 1 failed
 ##[error]Process completed with exit code 1`;

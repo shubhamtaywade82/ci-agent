@@ -311,6 +311,13 @@ export interface RepoHost {
   createIssue(input: IssueInput): Promise<void>;
   /** Marker comment ledger: hidden HTML marker for fingerprint dedupe. */
   findMarkerComment(pr: number, marker: string): Promise<{ id: number; body: string } | null>;
+  /**
+   * Commenter permission check for comment-triggered runs: resolves the
+   * collaborator permission level for a login (admin/maintain/write/read).
+   * `author_association` alone is too coarse — FIRST_TIME_CONTRIBUTOR and
+   * COLLABORATOR both need an API check to be meaningful.
+   */
+  getCollaboratorPermission?(login: string): Promise<string>;
   /** Optional duplicate-fix guard: one deterministic branch per PR head. */
   findExistingAgentFix?(branchName: string): Promise<{ pullRequestUrl: string | null; branchExists: boolean }>;
   updateComment(pr: number, commentId: number, body: string): Promise<void>;

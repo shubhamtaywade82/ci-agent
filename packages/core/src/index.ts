@@ -1,6 +1,7 @@
 export * from "./types.js";
 export * from "./manifest.js";
 export * from "./glob.js";
+export * from "./text.js";
 export * from "./schemas.js";
 export * from "./fingerprint.js";
 export * from "./policy.js";

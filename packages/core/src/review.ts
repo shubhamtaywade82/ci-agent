@@ -18,6 +18,7 @@ import { REVIEW_RESULT_SCHEMA } from "./schemas.js";
 import { estimateTokens, findingFingerprint, sha256, truncate } from "./fingerprint.js";
 import { parseUnifiedDiff, hunkRightLines } from "./diff.js";
 import { redactSecrets, patternToRegex } from "./glob.js";
+import { sanitizeMarkdown } from "./text.js";
 import type { AgentManifest } from "./manifest.js";
 import type {
   AuditStore,
@@ -91,8 +92,12 @@ export function chunkDiff(diff: string, maxChunks: number, tokensPerChunk = 5_00
       skipped.push(file.path + " (too large)");
       continue;
     }
+    if (chunks.length >= maxChunks) {
+      // Budget exhausted: report the remainder as skipped so coverage is honest.
+      skipped.push(file.path + " (over maxChunks budget)");
+      continue;
+    }
     chunks.push({ path: file.path, content: body });
-    if (chunks.length >= maxChunks) break;
   }
   return { chunks, skipped };
 }
@@ -242,12 +247,12 @@ export async function runReview(
     return { posted: false, findings: 0, skipped: skipped.length };
   }
 
-  const reviewBody = renderReviewBody(fresh, chunks.length, skipped.length);
+  const reviewBody = renderReviewBody(fresh, chunks.length, skipped);
   const comments = fresh.map((f) => ({
     path: f.path,
     line: f.line,
     side: "RIGHT" as const,
-    body: `**${f.severity}** — ${f.message}`,
+    body: `**${f.severity}** — ${sanitizeMarkdown(f.message)}`,
   }));
 
   await host.postReview(pr.number, {
@@ -319,20 +324,56 @@ function buildUserPrompt(pr: PullRequestRef, chunk: ReviewChunk, index: number, 
     .join("\n\n");
 }
 
-function renderReviewBody(fresh: { severity: string; message: string }[], chunks: number, skipped: number): string {
-  const lines = [
+// GitHub rejects comments over 65536 chars; per-section budgets keep the
+// total comfortably below the limit (ported from upstream hardening).
+const FINDINGS_BUDGET = 40_000;
+const SKIPPED_BUDGET = 10_000;
+const SUMMARY_BUDGET = 10_000;
+
+function renderReviewBody(
+  fresh: { severity: string; message: string }[],
+  chunks: number,
+  skippedList: string[],
+): string {
+  const findingsLines = fresh.map((f) => `- **${f.severity}** ${sanitizeMarkdown(f.message)}`);
+  const kept = fitLines(findingsLines, FINDINGS_BUDGET);
+  const coverage =
+    skippedList.length > 0
+      ? [
+          "**Not reviewed:**",
+          ...fitLines(skippedList.map((s) => `- ${sanitizeMarkdown(s)}`), SKIPPED_BUDGET),
+        ].join("\n")
+      : "";
+  const header = `Reviewed ${chunks} diff chunk(s); ${fresh.length} finding(s).`;
+  return [
     "### nemesis ci-agent — review",
     "",
-    `Reviewed ${chunks} diff chunk(s); ${skipped} file(s) skipped as non-reviewable.`,
+    header,
     "",
     `${fresh.length} finding(s):`,
     "",
-    ...fresh.map((f) => `- **${f.severity}** ${f.message}`),
+    ...kept,
+    "",
+    coverage,
     "",
     "Deterministic checks (typecheck/lint/tests) remain authoritative; this review is advisory only.",
     MARKER,
-  ];
-  return lines.join("\n");
+  ]
+    .filter((s) => s !== "")
+    .join("\n");
+}
+
+/** Keep lines until the budget is exhausted; note how many were omitted. */
+export function fitLines(lines: string[], budget: number): string[] {
+  const kept: string[] = [];
+  let used = 0;
+  for (const line of lines) {
+    if (used + line.length + 1 > budget) break;
+    kept.push(line);
+    used += line.length + 1;
+  }
+  const omitted = lines.length - kept.length;
+  return omitted > 0 ? [...kept, `- … ${omitted} more omitted (comment size limit)`] : kept;
 }
 
 // ---------------------------------------------------------------------------

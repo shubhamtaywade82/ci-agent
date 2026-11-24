@@ -17,6 +17,7 @@
     "test": "vitest run",
     "typecheck": "tsc -b tsconfig.json",
     "verify": "npm run clean && npm ci && npm run build && npm test",
+    "verify:offline": "npm run typecheck && npm test && npm run build",
     "lint": "node scripts/lint.mjs",
     "bundle:action": "node scripts/bundle-action.mjs"
   },

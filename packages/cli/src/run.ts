@@ -34,6 +34,9 @@ import {
 import type { AgentManifest, LlmPort, RepoHost, CiProvider, AuditStore } from "@nemesis-oss/ci-agent-core";
 import { composeEvent, loadPayload, parseRepo, readGithubEnv } from "./env.js";
 
+/** Permission levels that may trigger the advisory pipeline by comment. */
+const WRITE_ROLES = new Set(["admin", "maintain", "write"]);
+
 export interface RunOptions {
   /** Path to the policy manifest; defaults to .nemesis/ci-agent.yml */
   configPath?: string;
@@ -130,6 +133,23 @@ export async function run(opts: RunOptions = {}): Promise<RunResult> {
   const host = opts.overrides?.host ?? new GitHubRepoHost({ owner: parsed.owner, repo: parsed.repo, token });
   const ci = opts.overrides?.ci ?? new GitHubActionsCiProvider({ owner: parsed.owner, repo: parsed.repo, token });
   const audit = opts.overrides?.audit ?? new FileAuditStore(".nemesis/audit.jsonl");
+
+  // Commenter permission check (ported from upstream hardening): a comment
+  // can only trigger the advisory pipeline when its author has real write
+  // access. author_association alone is too coarse; resolve it via the API.
+  if (event.eventName === "issue_comment") {
+    if (!event.commentLogin) {
+      say("::error::comment author could not be determined from the event payload");
+      return { exitCode: 2, mode: task.mode, outcome: "config-error", reason: "missing comment author" };
+    }
+    if (host.getCollaboratorPermission) {
+      const permission = await host.getCollaboratorPermission(event.commentLogin);
+      if (!WRITE_ROLES.has(permission)) {
+        say(`::notice::skip: commenter ${event.commentLogin} lacks write access (permission: ${permission})`);
+        return { exitCode: 0, mode: task.mode, outcome: "skipped", reason: `commenter lacks write access (${permission})` };
+      }
+    }
+  }
 
   let llm: LlmPort;
   try {

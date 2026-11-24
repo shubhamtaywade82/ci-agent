@@ -133,6 +133,8 @@ describe("GitHubRepoHost", () => {
           return { sha: "blob-sha" };
         case "git.getCommit":
           return { tree: { sha: "tree-sha" } };
+        case "git.getTree":
+          return { tree: [{ path: "src/a.ts", mode: "100755", type: "blob", sha: "old" }] };
         case "git.createTree":
           return { sha: "new-tree" };
         case "git.createCommit":
@@ -150,6 +152,7 @@ describe("GitHubRepoHost", () => {
       "git.getRef",
       "git.createBlob",
       "git.getCommit",
+      "git.getTree",
       "git.createTree",
       "git.createCommit",
       "git.updateRef",
@@ -160,8 +163,33 @@ describe("GitHubRepoHost", () => {
     const tree = seen.find((s) => s.route === "git.createTree")!;
     expect(tree.params["base_tree"]).toBe("tree-sha");
     expect(tree.params["tree"]).toEqual([
-      { path: "src/a.ts", mode: "100644", type: "blob", sha: "blob-sha" },
+      { path: "src/a.ts", mode: "100755", type: "blob", sha: "blob-sha" },
     ]);
+  });
+
+  it("putFile falls back to 100644 for unseen paths (exec-bit lookup miss)", async () => {
+    const octokit = fakeOctokit((route) => {
+      switch (route) {
+        case "git.getRef":
+          return { object: { sha: "parent-sha" } };
+        case "git.createBlob":
+          return { sha: "blob-sha" };
+        case "git.getCommit":
+          return { tree: { sha: "tree-sha" } };
+        case "git.getTree":
+          return { tree: [{ path: "other.ts", mode: "100755", type: "blob", sha: "old" }] };
+        case "git.createTree":
+          return { sha: "new-tree" };
+        case "git.createCommit":
+          return { sha: "new-commit" };
+        case "git.updateRef":
+          return {};
+        default:
+          return {};
+      }
+    });
+    const host = new GitHubRepoHost({ owner: "acme", repo: "widget", octokit });
+    await host.putFile("src/new.ts", "new content", "nemesis-agent/fix/42/a1");
   });
 
   it("findMarkerComment matches the marker among issue comments", async () => {
