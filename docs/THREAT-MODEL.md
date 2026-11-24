@@ -16,6 +16,9 @@
 | Policy self-modification | `.nemesis/**` is hard-denied for patches regardless of `allowPaths` |
 | Markdown/mention injection via model output | Model text is escaped (`<`, `@`, `![`) before posting comments, issues and PR bodies |
 | Silent review gaps | Comments list every file that was skipped (policy, size, chunk budget) |
+| Comment trigger by under-privileged user | Commenter's repository permission is checked via API (write/maintain/admin required), in addition to the workflow `author_association` filter |
+| Malicious install scripts in the secret-bearing job | `npm ci --ignore-scripts` with a committed lockfile |
+| Oversized review comment rejected by GitHub | Each comment section has a character budget with an explicit "omitted" note |
 | Audit leakage | Store hashes and metadata only |
 
 ## Residual risk

@@ -1,4 +1,5 @@
-import { validateExpectedHeadSha } from "./event-validation.js";
+import { readFile } from "node:fs/promises";
+import { assertCommenterCanReview,validateExpectedHeadSha } from "./event-validation.js";
 import { Octokit } from "@octokit/rest";
 import { loadConfig } from "./config.js";
 import { JsonlAuditStore } from "./audit.js";
@@ -31,6 +32,9 @@ function model(envName:string):string{return process.env[envName]??"";}
 if(mode==="review"){
  const pr=Number(process.env.INPUT_PR_NUMBER||process.env.PR_NUMBER);
  if(!Number.isInteger(pr)||pr<1)throw new Error("PR_NUMBER is required.");
+ const eventPath=process.env.GITHUB_EVENT_PATH;
+ const payload=eventPath?JSON.parse(await readFile(eventPath,"utf8")) as {comment?:{user?:{login?:string}}}:{};
+ await assertCommenterCanReview(process.env.GITHUB_EVENT_NAME,payload.comment?.user?.login,login=>host.getCollaboratorPermission(login));
  const expectedHeadSha=validateExpectedHeadSha(process.env.GITHUB_EVENT_NAME,process.env.INPUT_EXPECTED_HEAD_SHA?.trim());
  const result=await runReview({pr,repository:fullName,repo:host,llm,audit,config,model:model(config.llm.reviewModelEnv),...(expectedHeadSha?{expectedHeadSha}:{})});
  console.log("Review posted; actionable findings: "+result.findings.length);

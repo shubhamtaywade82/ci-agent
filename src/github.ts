@@ -20,6 +20,10 @@ export class GitHubRepoHost implements RepoHost {
   return issues.some(issue=>issue.body?.includes(marker)??false);
  }
  async createIssue(input:{title:string;body:string;labels?:string[]}):Promise<void>{await this.octokit.issues.create({owner:this.owner,repo:this.repo,...input});}
+ async getCollaboratorPermission(login:string):Promise<string>{
+  const {data}=await this.octokit.repos.getCollaboratorPermissionLevel({owner:this.owner,repo:this.repo,username:login});
+  return data.permission;
+ }
  async getFileContent(path:string,ref:string):Promise<string|null>{
   try{
    const {data}=await this.octokit.repos.getContent({owner:this.owner,repo:this.repo,path,ref});
