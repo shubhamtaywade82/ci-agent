@@ -6,8 +6,9 @@ const SYSTEM="You prioritize software engineering improvements using only suppli
 export async function runImprovementScan(input:{evidence:EvidenceBundle;repository:string;llm:LlmPort;repo:RepoHost;audit:AuditStore;config:AgentConfig;model:string}):Promise<{priorities:number;created:boolean}>{
  const {evidence,repository,llm,repo,audit,config,model}=input;
  if(!config.enabled||!config.modes.scan.enabled||config.modes.scan.autonomy==="disabled")throw new Error("Scan mode disabled by policy.");
- if(config.dataPolicy.classification!=="public"&&!config.dataPolicy.sendSourceToCloud)throw new Error("Source transmission to Ollama Cloud is not approved by dataPolicy.");
+ // Empty evidence produces no model input; it is safe to return before cloud-data policy checks.
  if(!evidence.findings.length)return {priorities:0,created:false};
+ if(config.dataPolicy.classification!=="public"&&!config.dataPolicy.sendSourceToCloud)throw new Error("Source transmission to Ollama Cloud is not approved by dataPolicy.");
  const result=await llm.generateStructured({model,system:SYSTEM,prompt:"Project profile:\n"+JSON.stringify(evidence.profile)+"\nDeterministic findings:\n"+JSON.stringify(evidence.findings).slice(0,30000)+"\nMetrics:\n"+JSON.stringify(evidence.metrics),schema:ScanResultSchema,timeoutMs:config.llm.timeoutMs,maxOutputTokens:8000});
  const known=new Set(evidence.findings.map(f=>f.id));
  const priorities=result.priorities.filter(p=>p.evidenceRefs.length>0&&p.evidenceRefs.every(id=>known.has(id))).slice(0,config.modes.scan.maxFindings);
