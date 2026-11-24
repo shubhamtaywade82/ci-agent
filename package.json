@@ -12,10 +12,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "tsc -b packages/core && tsc -b packages/ollama-cloud && tsc -b packages/github && tsc -b packages/toolchains && tsc -b packages/cli",
     "clean": "node scripts/clean.mjs",
     "test": "vitest run",
-    "typecheck": "tsc -b tsconfig.json",
+    "typecheck": "npm run build",
     "verify": "npm run clean && npm ci && npm run build && npm test",
     "verify:offline": "npm run typecheck && npm test && npm run build",
     "lint": "node scripts/lint.mjs",

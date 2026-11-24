@@ -23,9 +23,8 @@ export async function doctor(env: NodeJS.ProcessEnv = process.env): Promise<Doct
   const checks: DoctorCheck[] = [];
 
   // D1: manifest present & valid
-  let manifestText: string | null = null;
   try {
-    manifestText = await readFile(".nemesis/ci-agent.yml", "utf8");
+    const manifestText = await readFile(".nemesis/ci-agent.yml", "utf8");
     parseManifest(parseYaml(manifestText));
     checks.push({ id: "manifest", title: "Policy manifest", status: "pass", detail: ".nemesis/ci-agent.yml parses" });
   } catch (err) {

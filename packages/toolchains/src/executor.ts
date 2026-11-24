@@ -77,11 +77,11 @@ export function runCommand(
 
     child.stdout.on("data", append);
     child.stderr.on("data", append);
-    child.on("error", (error) => {
+    child.on("error", (error: Error) => {
       cleanup();
       reject(error);
     });
-    child.on("close", (code) => {
+    child.on("close", (code: number | null) => {
       cleanup();
       resolve({
         code: timedOut ? 124 : code ?? 1,
