@@ -21,5 +21,24 @@
   "dependencies": {
     "@nemesis-oss/ci-agent-core": "^0.1.0",
     "fast-xml-parser": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamtaywade82/ci-agent.git",
+    "directory": "packages/toolchains"
+  },
+  "homepage": "https://github.com/shubhamtaywade82/ci-agent#readme",
+  "bugs": {
+    "url": "https://github.com/shubhamtaywade82/ci-agent/issues"
   }
 }

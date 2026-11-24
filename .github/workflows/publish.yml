@@ -1,0 +1,74 @@
+name: Publish
+
+# Called by release-please.yml only. That file must be the trusted-publisher
+# entry on npmjs.com for every package, because trusted publishing validates
+# the calling workflow. Publishes with npm trusted publishing (OIDC): no npm
+# token is stored or used, and provenance attestations come from the same
+# OIDC identity. Manual runs go through release-please.yml's workflow_dispatch.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "npm dist-tag to publish under"
+        required: false
+        type: string
+        default: "latest"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No registry-url: npm defaults to registry.npmjs.org, and setup-node's
+      # .npmrc auth placeholder must not shadow the OIDC credential.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # Trusted publishing needs npm >= 11.21.0.
+      - name: Pin npm for trusted publishing
+        run: npm install -g npm@^11.21.0
+
+      - name: Validate dist-tag
+        # inputs.tag must reach the shell only through the environment.
+        env:
+          NPM_DIST_TAG: ${{ inputs.tag || 'latest' }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$NPM_DIST_TAG" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]; then
+            echo "::error::Invalid npm dist-tag '$NPM_DIST_TAG'. Refusing to publish."
+            exit 1
+          fi
+
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+
+      # Full release gate, run once; publish uses --ignore-scripts.
+      - name: Verify quality, build and tarball contents
+        run: npm run verify:release
+
+      # Dependency order: core first, cli last. Versions already on the
+      # registry are skipped so a partially failed run can simply be re-run.
+      - name: Publish to npm (trusted publishing)
+        env:
+          NPM_DIST_TAG: ${{ inputs.tag || 'latest' }}
+        run: |
+          set -euo pipefail
+          for pkg in core ollama-cloud github toolchains cli; do
+            dir="packages/$pkg"
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "skip $name@$version (already published)"
+              continue
+            fi
+            npm publish -w "$dir" --access public --tag "$NPM_DIST_TAG" --ignore-scripts
+          done

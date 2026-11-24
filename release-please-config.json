@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "separate-pull-requests": false,
+  "pull-request-title-pattern": "chore: release ${version}",
+  "plugins": [
+    "node-workspace",
+    {
+      "type": "linked-versions",
+      "groupName": "ci-agent",
+      "components": [
+        "ci-agent-core",
+        "ci-agent-ollama-cloud",
+        "ci-agent-github",
+        "ci-agent-toolchains",
+        "ci-agent"
+      ]
+    }
+  ],
+  "packages": {
+    "packages/core": { "component": "ci-agent-core", "skip-changelog": true },
+    "packages/ollama-cloud": { "component": "ci-agent-ollama-cloud", "skip-changelog": true },
+    "packages/github": { "component": "ci-agent-github", "skip-changelog": true },
+    "packages/toolchains": { "component": "ci-agent-toolchains", "skip-changelog": true },
+    "packages/cli": { "component": "ci-agent", "skip-changelog": true }
+  }
+}

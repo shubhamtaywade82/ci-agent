@@ -22,5 +22,24 @@
     "@nemesis-oss/ci-agent-core": "^0.1.0",
     "@nemesis-oss/ollama-sdk": "^1.26.0",
     "ajv": "^8.20.0"
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamtaywade82/ci-agent.git",
+    "directory": "packages/ollama-cloud"
+  },
+  "homepage": "https://github.com/shubhamtaywade82/ci-agent#readme",
+  "bugs": {
+    "url": "https://github.com/shubhamtaywade82/ci-agent/issues"
   }
 }

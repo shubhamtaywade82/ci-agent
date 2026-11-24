@@ -4,3 +4,6 @@
 /action/                        @shubhamtaywade82
 /packages/core/src/policy.ts    @shubhamtaywade82
 /packages/core/src/manifest.ts  @shubhamtaywade82
+/release-please-config.json @shubhamtaywade82
+/.release-please-manifest.json @shubhamtaywade82
+/scripts/ @shubhamtaywade82

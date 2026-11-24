@@ -24,5 +24,24 @@
     "@octokit/plugin-rest-endpoint-methods": "^18.0.0",
     "@octokit/rest": "^22.0.1",
     "fflate": "^0.8.3"
+  },
+  "files": [
+    "dist",
+    "!dist/.tsbuildinfo",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamtaywade82/ci-agent.git",
+    "directory": "packages/github"
+  },
+  "homepage": "https://github.com/shubhamtaywade82/ci-agent#readme",
+  "bugs": {
+    "url": "https://github.com/shubhamtaywade82/ci-agent/issues"
   }
 }
