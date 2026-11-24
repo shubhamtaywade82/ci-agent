@@ -8,6 +8,7 @@
 - `.nemesis/**` is always denied for patches; executable bits are preserved.
 - Job-level review concurrency, `npm ci --ignore-scripts`, committed lockfile, `actionlint`, Dependabot and CODEOWNERS.
 - One retry for transient or malformed model output.
+- ESLint (complexity, function/file length, depth, params), Prettier, coverage thresholds and a `.githooks/pre-commit` hook that runs `npm run verify`; `action.ts` now exposes a testable `main(env)`.
 
 ## 0.1.0
 
