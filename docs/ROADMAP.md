@@ -7,7 +7,10 @@
 - [x] Consolidated PR review comments
 - [x] Failed-CI diagnosis and stacked draft fix PRs
 - [x] Evidence-grounded scheduled issue scans
-- [x] JSONL auditing and offline unit tests
+- [x] JSONL auditing and offline unit tests (31 tests across 6 files)
+- [x] Deterministic autofix branch and duplicate-run guard
+- [x] Pin GitHub Actions to commit SHAs
+- [x] Verify Node 24 typecheck, tests and production build
 - [ ] Inline diff comments with exact GitHub position mapping
 - [ ] Broader deterministic analyzers for npm/pnpm/yarn, Python, Go, Rust, JVM, .NET and infrastructure
 - [ ] Token/cost budgets and model latency telemetry

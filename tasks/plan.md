@@ -22,8 +22,9 @@ Build a reusable Node.js 24+ package and GitHub Action for PR review, failed-CI 
 - [x] Label-gated failed-CI autofix and draft PR workflow.
 - [x] Deterministic scan evidence and issue reporting.
 - [x] Offline tests and security/operations documentation.
-- [ ] Run GitHub Actions checks in the target repository.
+- [x] Run GitHub Actions checks in the target repository (Node 24 typecheck, 31 tests, production build).
 - [ ] Configure secrets, model variables and GitHub App permissions.
+- [ ] Deploy the external GitHub App webhook dispatcher for automatic PR update reviews.
 - [ ] Publish the first npm release after CI verification.
 
 ## Risks
@@ -34,6 +35,7 @@ Build a reusable Node.js 24+ package and GitHub Action for PR review, failed-CI 
 | Prompt injection | Treat retrieved text as untrusted; no model tool access |
 | Sensitive data in prompts | Source-sharing opt-in; redact common secret patterns |
 | Stale fixes | Match failed-run SHA and re-check the branch ref before committing |
+| Duplicate fix PRs | Deterministic branch per PR/head SHA, existing draft/orphan branch detection and workflow concurrency |
 | Privilege escalation | No fork PR execution; scoped App token; draft PR only |
 
 ## Verification

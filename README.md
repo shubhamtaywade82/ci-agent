@@ -7,7 +7,7 @@ Policy-gated CI agents for GitHub repositories: pull-request review, CI failure 
 ## Features
 
 - **PR review:** reads changed-file patches through the GitHub API, filters protected paths, chunks context, validates structured findings, checks reported files and added lines, deduplicates and posts one consolidated comment. Fork and draft PRs are excluded.
-- **Autofix:** reacts to failed workflow runs, requires a same-repository PR, unchanged head SHA, explicit opt-in label and bounded attempt count; creates a low-risk/high-confidence patch as a stacked draft PR against the contributor PR branch. It never commits to the contributor branch or merges.
+- **Autofix:** reacts to failed workflow runs, requires a same-repository PR, unchanged head SHA, explicit opt-in label and bounded attempt count; creates a low-risk/high-confidence patch as a stacked draft PR against the contributor PR branch. A deterministic branch per PR/head SHA prevents duplicate draft fixes for repeated failed runs. It never commits to the contributor branch or merges.
 - **Improvement scan:** executes only explicitly configured deterministic commands, records command outcomes, asks the model to rank evidence-backed priorities and opens deduplicated issues.
 - **Auditing:** JSONL records include evidence hashes and decision metadata, never raw source or credential values.
 - **Policy:** strict versioned YAML, allow/deny paths, schema validation, output budgets and explicit source-sharing approval.
