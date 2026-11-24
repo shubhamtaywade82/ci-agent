@@ -31,3 +31,22 @@ describe("GitHubRepoHost.createDraftPullRequest",()=>{
   expect(octokit.git.createRef).not.toHaveBeenCalled();
  });
 });
+
+describe("GitHubRepoHost.upsertComment",()=>{
+ function commentsOctokit(comments:{id:number;body:string;user:{type:string}}[]){
+  const issues={listComments:Symbol("listComments"),createComment:vi.fn(),updateComment:vi.fn()};
+  return {issues,paginate:vi.fn().mockResolvedValue(comments)};
+ }
+ const MARKER="<!-- m -->";
+ it("updates the existing bot comment carrying the marker",async()=>{
+  const octokit=commentsOctokit([{id:7,body:"old "+MARKER,user:{type:"Bot"}}]);
+  await new GitHubRepoHost(octokit as unknown as Octokit,"o","r").upsertComment(1,MARKER,"new "+MARKER);
+  expect(octokit.issues.updateComment).toHaveBeenCalledWith(expect.objectContaining({comment_id:7}));
+  expect(octokit.issues.createComment).not.toHaveBeenCalled();
+ });
+ it("creates a comment when none exists or the marker was pasted by a human",async()=>{
+  const octokit=commentsOctokit([{id:8,body:MARKER,user:{type:"User"}}]);
+  await new GitHubRepoHost(octokit as unknown as Octokit,"o","r").upsertComment(1,MARKER,"body");
+  expect(octokit.issues.createComment).toHaveBeenCalledOnce();expect(octokit.issues.updateComment).not.toHaveBeenCalled();
+ });
+});

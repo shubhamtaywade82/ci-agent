@@ -11,7 +11,7 @@ export interface RepoHost {
   getPullRequest(number:number):Promise<PullRequestSnapshot>;
   getDiff(number:number):Promise<PullRequestFileDiff[]>;
   getFileContent(path:string,ref:string):Promise<string|null>;
-  postComment(number:number,body:string):Promise<void>;
+  upsertComment(number:number,marker:string,body:string):Promise<void>;
   findOpenIssueByMarker(marker:string):Promise<boolean>;
   createIssue(input:{title:string;body:string;labels?:string[]}):Promise<void>;
   findExistingAgentFix(branchName:string):Promise<{pullRequestUrl:string|null;branchExists:boolean}>;

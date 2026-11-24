@@ -5,7 +5,7 @@ import type { AuditStore,LlmPort,RepoHost } from "../src/types.js";
 function fixture(draft=false):RepoHost{return {
  getPullRequest:vi.fn().mockResolvedValue({number:2,title:"change",body:null,headSha:"abc",headBranch:"feature",headRepoFullName:"org/repo",baseBranch:"main",draft,labels:[]}),
  getDiff:vi.fn().mockResolvedValue([{path:"src/a.ts",patch:"@@ -1 +1 @@\n-old\n+new"},{path:".github/workflows/ci.yml",patch:"secret"}]),
- getFileContent:vi.fn(),postComment:vi.fn(),findOpenIssueByMarker:vi.fn(),createIssue:vi.fn(),findExistingAgentFix:vi.fn().mockResolvedValue({pullRequestUrl:null,branchExists:false}),createDraftPullRequest:vi.fn()
+ getFileContent:vi.fn(),upsertComment:vi.fn(),findOpenIssueByMarker:vi.fn(),createIssue:vi.fn(),findExistingAgentFix:vi.fn().mockResolvedValue({pullRequestUrl:null,branchExists:false}),createDraftPullRequest:vi.fn()
 };}
 describe("review agent",()=>{
  it("posts only changed-file findings and filters protected diff paths",async()=>{
@@ -15,7 +15,7 @@ describe("review agent",()=>{
    {id:"2",source:"test",severity:"high",fingerprint:"fingerprint-2",message:"not in diff",evidenceRefs:[],path:"other.ts"}
   ]})};
   const result=await runReview({pr:2,repository:"org/repo",repo,llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test"});
-  expect(result.findings).toHaveLength(1);expect(repo.postComment).toHaveBeenCalledOnce();
+  expect(result.findings).toHaveLength(1);expect(repo.upsertComment).toHaveBeenCalledOnce();
   expect(String(vi.mocked(llm.generateStructured).mock.calls[0]?.[0].prompt)).not.toContain(".github/workflows/ci.yml");
  });
  it("refuses draft PRs",async()=>{
@@ -38,13 +38,13 @@ describe("review agent",()=>{
   vi.mocked(repo.getDiff).mockResolvedValue([{path:".github/workflows/ci.yml",patch:"excluded"}]);
   const llm:LlmPort={generateStructured:vi.fn()};
   const result=await runReview({pr:2,repository:"org/repo",repo,llm,audit:{append:vi.fn()},config:parseConfig({version:1}),model:""});
-  expect(result.findings).toHaveLength(0);expect(repo.postComment).toHaveBeenCalledOnce();expect(llm.generateStructured).not.toHaveBeenCalled();
+  expect(result.findings).toHaveLength(0);expect(repo.upsertComment).toHaveBeenCalledOnce();expect(llm.generateStructured).not.toHaveBeenCalled();
  });
  it("states what was not reviewed instead of implying a clean review",async()=>{
   const repo=fixture();
   vi.mocked(repo.getDiff).mockResolvedValue([{path:".github/workflows/ci.yml",patch:"excluded"}]);
   await runReview({pr:2,repository:"org/repo",repo,llm:{generateStructured:vi.fn()},audit:{append:vi.fn()},config:parseConfig({version:1}),model:""});
-  const body=String(vi.mocked(repo.postComment).mock.calls[0]?.[1]);
+  const body=String(vi.mocked(repo.upsertComment).mock.calls[0]?.[2]);
   expect(body).toContain("No files were reviewed.");expect(body).toContain("Not reviewed");expect(body).not.toContain("No actionable findings");
  });
  it("reports oversized diffs and chunks over budget as not reviewed",()=>{
@@ -59,7 +59,7 @@ describe("review agent",()=>{
   const repo=fixture();
   const llm:LlmPort={generateStructured:vi.fn().mockResolvedValue({summary:"ping @everyone",findings:[{id:"1",source:"test",severity:"high",fingerprint:"fingerprint-1",message:"<!-- x --> ![i](http://e)",evidenceRefs:[],path:"src/a.ts",line:1}]})};
   await runReview({pr:2,repository:"org/repo",repo,llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test"});
-  const body=String(vi.mocked(repo.postComment).mock.calls[0]?.[1]);
+  const body=String(vi.mocked(repo.upsertComment).mock.calls[0]?.[2]);
   expect(body).not.toContain("@everyone");expect(body).not.toContain("<!-- x");expect(body).not.toContain("![i]");
  });
  it("truncates oversized sections and says how many entries were omitted",()=>{

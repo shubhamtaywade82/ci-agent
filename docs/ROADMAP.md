@@ -11,6 +11,7 @@
 - [x] Deterministic autofix branch and duplicate-run guard
 - [x] Pin GitHub Actions to commit SHAs
 - [x] Verify Node 24 typecheck, tests and production build
+- [x] Update the review comment in place on re-runs
 - [ ] Inline diff comments with exact GitHub position mapping
 - [ ] Broader deterministic analyzers for npm/pnpm/yarn, Python, Go, Rust, JVM, .NET and infrastructure
 - [ ] Token/cost budgets and model latency telemetry

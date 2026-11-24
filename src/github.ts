@@ -14,7 +14,14 @@ export class GitHubRepoHost implements RepoHost {
   const files=await this.octokit.paginate(this.octokit.pulls.listFiles,{owner:this.owner,repo:this.repo,pull_number:number,per_page:100});
   return files.map(file=>({path:file.filename,patch:file.patch??null}));
  }
- async postComment(number:number,body:string):Promise<void>{await this.octokit.issues.createComment({owner:this.owner,repo:this.repo,issue_number:number,body});}
+ // Bot-only match: a human pasting the marker must not redirect the update onto their own comment.
+ async upsertComment(number:number,marker:string,body:string):Promise<void>{
+  const target={owner:this.owner,repo:this.repo};
+  const comments=await this.octokit.paginate(this.octokit.issues.listComments,{...target,issue_number:number,per_page:100});
+  const previous=comments.find(comment=>comment.body?.includes(marker)&&comment.user?.type==="Bot");
+  if(previous)await this.octokit.issues.updateComment({...target,comment_id:previous.id,body});
+  else await this.octokit.issues.createComment({...target,issue_number:number,body});
+ }
  async findOpenIssueByMarker(marker:string):Promise<boolean>{
   const issues=await this.octokit.paginate(this.octokit.issues.listForRepo,{owner:this.owner,repo:this.repo,state:"open",per_page:100});
   return issues.some(issue=>issue.body?.includes(marker)??false);
