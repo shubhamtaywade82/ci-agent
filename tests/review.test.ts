@@ -5,7 +5,7 @@ import type { AuditStore,LlmPort,RepoHost } from "../src/types.js";
 function fixture(draft=false):RepoHost{return {
  getPullRequest:vi.fn().mockResolvedValue({number:2,title:"change",body:null,headSha:"abc",headBranch:"feature",headRepoFullName:"org/repo",baseBranch:"main",draft,labels:[]}),
  getDiff:vi.fn().mockResolvedValue([{path:"src/a.ts",patch:"@@ -1 +1 @@\n-old\n+new"},{path:".github/workflows/ci.yml",patch:"secret"}]),
- postComment:vi.fn(),findOpenIssueByMarker:vi.fn(),createIssue:vi.fn(),createDraftPullRequest:vi.fn()
+ postComment:vi.fn(),findOpenIssueByMarker:vi.fn(),createIssue:vi.fn(),findExistingAgentFix:vi.fn().mockResolvedValue({pullRequestUrl:null,branchExists:false}),createDraftPullRequest:vi.fn()
 };}
 describe("review agent",()=>{
  it("posts only changed-file findings and filters protected diff paths",async()=>{
