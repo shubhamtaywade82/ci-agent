@@ -1,0 +1,36 @@
+{
+  "name": "@nemesis-oss/ci-agent",
+  "version": "0.1.0",
+  "description": "Policy-gated CI agents for PR review, bounded autofix proposals and engineering scans.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=24" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "bin": { "nemesis-ci": "./dist/cli.js" },
+  "files": ["dist", "action.yml", "README.md", "LICENSE"],
+  "scripts": {
+    "clean": "rm -rf dist coverage",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@nemesis-oss/ollama-sdk": "^1.26.0",
+    "@octokit/rest": "^21.1.1",
+    "commander": "^14.0.0",
+    "js-yaml": "^4.1.0",
+    "minimatch": "^10.0.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": { "access": "public", "provenance": true }
+}

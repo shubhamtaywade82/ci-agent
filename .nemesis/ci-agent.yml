@@ -1,0 +1,46 @@
+version: 1
+enabled: true
+project:
+  name: ci-agent
+  type: node-typescript
+toolchain:
+  adapter: node
+  commands:
+    verify: ["npm", "run", "verify"]
+  commandTimeoutMs: 120000
+  passEnv: []
+modes:
+  review:
+    enabled: true
+    autonomy: comment
+    maxChunks: 6
+    maxInputChars: 90000
+  fix:
+    enabled: true
+    autonomy: draft-pr
+    optInLabel: nemesis:autofix
+    maxAttempts: 2
+    maxFiles: 5
+    maxFileBytes: 60000
+  scan:
+    enabled: true
+    autonomy: issue
+    maxFindings: 15
+policy:
+  autoMerge: false
+  requireHumanApproval: true
+  allowPaths: ["src/**", "tests/**", "docs/**", "README.md", "*.md"]
+  denyPaths: [".github/**", "**/*.lock", "**/package-lock.json", "**/.env*", "**/*secret*", "**/credentials*", "**/migrations/**"]
+dataPolicy:
+  classification: public
+  sendSourceToCloud: true
+  redactPaths: ["**/.env*", "**/*secret*", "**/credentials*"]
+llm:
+  provider: ollama-cloud
+  reviewModelEnv: OLLAMA_MODEL_REVIEW
+  fixModelEnv: OLLAMA_MODEL_FIX
+  scanModelEnv: OLLAMA_MODEL_SCAN
+  timeoutMs: 90000
+audit:
+  path: .nemesis/audit.jsonl
+  uploadArtifact: true
