@@ -30,6 +30,23 @@ const CONSOLE_ALLOWED = new Set([
   "action/src/actions-core.ts",
 ]);
 
+export const LEGACY_LINE_BUDGETS = new Map([
+  ["packages/core/src/fix.ts", 370],
+  ["packages/core/src/manifest.ts", 390],
+  ["packages/core/src/review.ts", 445],
+  ["packages/core/src/types.ts", 365],
+  ["packages/github/src/repo-host.ts", 370],
+]);
+
+export function checkCrlf(text) {
+  return /\r\n/.test(text);
+}
+
+export function checkLineBudget(file, lineCount) {
+  const allowed = LEGACY_LINE_BUDGETS.get(file) ?? 300;
+  return lineCount <= allowed;
+}
+
 for (const pkg of ["core", "ollama-cloud", "github", "toolchains", "cli"]) {
   const pkgJson = JSON.parse(await readFile(join(root, "packages", pkg, "package.json"), "utf8"));
   for (const field of ["name", "license", "engines"]) {
@@ -40,6 +57,11 @@ for (const pkg of ["core", "ollama-cloud", "github", "toolchains", "cli"]) {
     const rel = file.slice(root.length + 1);
     const text = await readFile(file, "utf8");
 
+    if (checkCrlf(text)) failures.push(`${rel}: CRLF line ending`);
+    const lineCount = text.split("\n").length;
+    if (!checkLineBudget(rel, lineCount)) {
+      failures.push(`${rel}: line count ${lineCount} exceeds budget`);
+    }
     if (/TODO|FIXME/.test(text)) failures.push(`${rel}: TODO/FIXME marker`);
     if (/console\.(log|debug)\(/.test(text) && !CONSOLE_ALLOWED.has(rel)) {
       failures.push(`${rel}: console.log in library code`);
@@ -52,11 +74,14 @@ for (const pkg of ["core", "ollama-cloud", "github", "toolchains", "cli"]) {
 for await (const file of walk(join(root, "action/src"))) {
   const rel = file.slice(root.length + 1);
   const text = await readFile(file, "utf8");
+  if (checkCrlf(text)) failures.push(`${rel}: CRLF line ending`);
   if (/TODO|FIXME/.test(text)) failures.push(`${rel}: TODO marker`);
 }
 
-if (failures.length > 0) {
-  console.error("lint failures:\n" + failures.join("\n"));
-  process.exit(1);
+if (process.argv[1] && process.argv[1].endsWith("lint.mjs")) {
+  if (failures.length > 0) {
+    console.error("lint failures:\n" + failures.join("\n"));
+    process.exit(1);
+  }
+  console.log("lint ok");
 }
-console.log("lint ok");

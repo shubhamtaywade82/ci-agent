@@ -21,6 +21,7 @@
     "lint": "node scripts/lint.mjs",
     "bundle:action": "node scripts/bundle-action.mjs",
     "pack:check": "node scripts/check-pack.mjs",
+    "prepare": "git config core.hooksPath .githooks || true",
     "verify:release": "npm run lint && npm run build && npm test && npm run pack:check"
   },
   "devDependencies": {
