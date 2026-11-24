@@ -1,0 +1,76 @@
+name: action-bundle
+
+# Rebuilds the committed composite-action bundle (action/dist/index.js),
+# resolves the npm lockfile and removes the legacy single-package layout,
+# committing the result so `uses: ./action` runs on a clean runner with no
+# install step at agent-execution time. No-ops (green) until the action
+# sources have landed on this branch.
+
+on:
+  push:
+    paths:
+      - action/src/**
+      - action/action.yml
+      - scripts/bundle-action.mjs
+      - .github/workflows/action-bundle.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: action-bundle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Guard - action sources present?
+        id: guard
+        run: |
+          if [ -f scripts/bundle-action.mjs ] && [ -f action/src/index.ts ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "action sources not landed on this branch yet; nothing to bundle"
+          fi
+      - name: Remove legacy single-package layout (idempotent)
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          git rm -r --ignore-unmatch \
+            action.yml tsconfig.build.json \
+            src/action.ts src/audit.ts src/autofix.ts src/cli.ts src/config.ts \
+            src/event-validation.ts src/github.ts src/index.ts src/ollama.ts \
+            src/policy.ts src/review.ts src/scan.ts src/schemas.ts src/types.ts \
+            src/workspace.ts \
+            tests/autofix.test.ts tests/config.test.ts tests/event-validation.test.ts \
+            tests/policy.test.ts tests/review.test.ts tests/scan.test.ts \
+            tests/workspace.test.ts
+      - name: Resolve dependencies (creates package-lock.json on first run)
+        if: steps.guard.outputs.ready == 'true'
+        run: npm install --no-audit --no-fund
+      - name: Bundle the action entrypoint
+        if: steps.guard.outputs.ready == 'true'
+        run: npm run bundle:action
+      - name: Verify the offline pipeline
+        if: steps.guard.outputs.ready == 'true'
+        run: npm run typecheck && npm test && npm run build
+      - name: Commit bundle, lockfile and legacy cleanup
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          git config user.name "ci-agent-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add action/dist/index.js package-lock.json
+          if git diff --cached --quiet; then
+            echo "bundle and lockfile already current"
+            exit 0
+          fi
+          git commit -m "chore(action): rebuild dist bundle, refresh lockfile, drop legacy layout [skip ci]"
+          git push origin HEAD:"${{ github.ref_name }}"
