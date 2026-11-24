@@ -14,10 +14,19 @@ describe("autofix guardrails",()=>{
   const f=fixture();const result=await runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config,model:"test"});
   expect(result.applied).toBe(true);expect(f.repo.createDraftPullRequest).toHaveBeenCalledOnce();
  });
- it("requires an explicit opt-in label",async()=>{
-  const f=fixture(false);await expect(runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config,model:"test"})).rejects.toThrow(/opt-in/);
+ it("skips without calling the model when explicit opt-in label is missing",async()=>{
+  const f=fixture(false);const result=await runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config,model:""});
+  expect(result.applied).toBe(false);expect(result.reasons.join(" ")).toMatch(/opt-in/);
+  expect(f.llm.generateStructured).not.toHaveBeenCalled();expect(f.repo.createDraftPullRequest).not.toHaveBeenCalled();
  });
- it("rejects a stale PR head SHA",async()=>{
-  const f=fixture(true,"moved");await expect(runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config,model:"test"})).rejects.toThrow(/SHA changed/);
+ it("skips stale PR head SHA without calling the model",async()=>{
+  const f=fixture(true,"moved");const result=await runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config,model:"test"});
+  expect(result.applied).toBe(false);expect(result.reasons.join(" ")).toMatch(/SHA changed/);
+  expect(f.llm.generateStructured).not.toHaveBeenCalled();
+ });
+ it("skips source transmission when repository policy has not approved cloud sharing",async()=>{
+  const f=fixture();const result=await runAutofix({runId:"123",pr:3,repository:"org/repo",...f,config:parseConfig({version:1,modes:{fix:{enabled:true,autonomy:"draft-pr"}}}),model:""});
+  expect(result.applied).toBe(false);expect(result.reasons.join(" ")).toMatch(/dataPolicy/);
+  expect(f.llm.generateStructured).not.toHaveBeenCalled();
  });
 });

@@ -31,4 +31,11 @@ describe("review agent",()=>{
   await expect(runReview({pr:2,repository:"org/repo",repo:fixture(),llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test",expectedHeadSha:"stale-sha"})).rejects.toThrow(/head SHA changed/);
   expect(llm.generateStructured).not.toHaveBeenCalled();
  });
+ it("does not require cloud approval or a model when every changed path is excluded",async()=>{
+  const repo=fixture();
+  vi.mocked(repo.getDiff).mockResolvedValue([{path:".github/workflows/ci.yml",patch:"excluded"}]);
+  const llm:LlmPort={generateStructured:vi.fn()};
+  const result=await runReview({pr:2,repository:"org/repo",repo,llm,audit:{append:vi.fn()},config:parseConfig({version:1}),model:""});
+  expect(result.findings).toHaveLength(0);expect(repo.postComment).toHaveBeenCalledOnce();expect(llm.generateStructured).not.toHaveBeenCalled();
+ });
 });

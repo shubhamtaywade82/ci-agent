@@ -21,7 +21,6 @@ export async function runReview(input:{pr:number;repository:string;repo:RepoHost
  const {pr,repository,repo,llm,audit,config,model}=input;
  if(!config.enabled||!config.modes.review.enabled||config.modes.review.autonomy==="disabled")throw new Error("Review mode disabled by policy.");
  if(input.isFork)throw new Error("Cloud review is disabled for fork-originated pull requests.");
- if(config.dataPolicy.classification!=="public"&&!config.dataPolicy.sendSourceToCloud)throw new Error("Source transmission to Ollama Cloud is not approved by dataPolicy.");
  const pull=await repo.getPullRequest(pr);
  if(pull.draft)throw new Error("Draft pull requests are not reviewed.");
  if(pull.headRepoFullName!==repository)throw new Error("Review is restricted to same-repository pull requests.");
@@ -37,6 +36,8 @@ export async function runReview(input:{pr:number;repository:string;repo:RepoHost
   current+=block;
  }
  if(current)chunks.push(current);
+ if(chunks.length>0&&config.dataPolicy.classification!=="public"&&!config.dataPolicy.sendSourceToCloud)throw new Error("Source transmission to Ollama Cloud is not approved by dataPolicy.");
+ if(chunks.length>0&&!model.trim())throw new Error("The configured review model variable is missing.");
  const findings:Finding[]=[];const summaries:string[]=[];
  for(const [index,chunk] of chunks.slice(0,config.modes.review.maxChunks).entries()){
   const response=await llm.generateStructured({model,system:SYSTEM,prompt:"PR #"+pr+": "+pull.title+"\nDiff segment "+(index+1)+":\n"+chunk,schema:ReviewResultSchema,timeoutMs:config.llm.timeoutMs,maxOutputTokens:6000});

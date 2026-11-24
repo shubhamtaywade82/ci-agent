@@ -8,6 +8,7 @@ import { runReview } from "./review.js";
 import { runAutofix } from "./autofix.js";
 import { runImprovementScan } from "./scan.js";
 import { collectEvidence } from "./workspace.js";
+import type { LlmPort,StructuredOutputRequest } from "./types.js";
 
 const mode=process.env.INPUT_MODE??"validate";
 const config=await loadConfig(process.env.INPUT_CONFIG??".nemesis/ci-agent.yml");
@@ -19,8 +20,14 @@ if(!token)throw new Error("A scoped GitHub token is required.");
 const octokit=new Octokit({auth:token});
 const host=new GitHubRepoHost(octokit,owner,repo);
 const audit=new JsonlAuditStore(config.audit.path);
-const llm=new OllamaCloudAdapter();
-function model(envName:string):string{const value=process.env[envName];if(!value)throw new Error("Missing required model variable "+envName);return value;}
+let ollama:OllamaCloudAdapter|undefined;
+const llm:LlmPort={
+ async generateStructured<T>(request:StructuredOutputRequest<T>):Promise<T>{
+  ollama??=new OllamaCloudAdapter();
+  return ollama.generateStructured(request);
+ }
+};
+function model(envName:string):string{return process.env[envName]??"";}
 if(mode==="review"){
  const pr=Number(process.env.INPUT_PR_NUMBER||process.env.PR_NUMBER);
  if(!Number.isInteger(pr)||pr<1)throw new Error("PR_NUMBER is required.");
@@ -34,8 +41,8 @@ if(mode==="review"){
  if(!runId||!Number.isInteger(pr)||pr<1)throw new Error("WORKFLOW_RUN_ID and PR_NUMBER are required.");
  const ci=new GitHubActionsCiProvider(octokit,owner,repo,token);
  const result=await runAutofix({runId,pr,repository:fullName,repo:host,ci,llm,audit,config,model:model(config.llm.fixModelEnv)});
- if(!result.applied)throw new Error(result.reasons.join("; "));
- console.log("Draft fix PR created: "+result.pullRequestUrl);
+ if(!result.applied)console.log("Autofix skipped: "+result.reasons.join("; "));
+ else console.log("Draft fix PR created: "+result.pullRequestUrl);
 }else if(mode==="scan"){
  const sha=process.env.GITHUB_SHA;if(!sha)throw new Error("GITHUB_SHA is required.");
  const evidence=await collectEvidence({config,repository:fullName,sha});

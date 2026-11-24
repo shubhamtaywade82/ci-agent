@@ -112,6 +112,8 @@ Configure repository variables/secrets:
 | `CI_AGENT_APP_ID` | Variable | GitHub App ID for autofix |
 | `CI_AGENT_APP_PRIVATE_KEY` | Secret | GitHub App private key |
 
+For autofix, create a repository label named `nemesis:autofix` and add it only to PRs where an automated draft fix is authorized. If the label is absent, the workflow exits successfully without invoking Ollama or creating a branch. A stale PR head, disabled cloud-sharing policy or exhausted retry budget also produces a safe skip.
+
 Install the GitHub App only on target repositories with **Actions: read, Contents: write, Issues: read, Pull requests: write**. The autofix workflow uses a short-lived installation token; it does not use default `GITHUB_TOKEN` for commits, because those commits do not trigger subsequent workflows by default.
 
 ## CLI
