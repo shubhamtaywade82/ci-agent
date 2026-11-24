@@ -2,6 +2,7 @@ import { readdir,readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
+import { redactText } from "./text.js";
 import type { AgentConfig } from "./config.js";
 import type { EvidenceBundle,Finding,ProjectProfile } from "./types.js";
 
@@ -24,12 +25,6 @@ export async function discoverProject(root=process.cwd()):Promise<ProjectProfile
  if(names.some(n=>n.endsWith(".sln")||n.endsWith(".csproj")))languages.add("dotnet");
  if(names.includes("Dockerfile"))frameworks.add("docker");
  return {languages:[...languages],packageManagers:[...packageManagers],frameworks:[...frameworks],rootFiles,monorepo:names.some(n=>["pnpm-workspace.yaml","turbo.json","nx.json","lerna.json"].includes(n))};
-}
-export function redactText(value:string):string{
- return value.replace(/(gh[pousr]_[A-Za-z0-9_]{20,})/g,"[REDACTED_GITHUB_TOKEN]")
-  .replace(/(ollama_[A-Za-z0-9_-]{16,})/g,"[REDACTED_API_KEY]")
-  .replace(/(Bearer\s+)[A-Za-z0-9._~-]+/gi,"$1[REDACTED]")
-  .replace(/(password|secret|token|api[_-]?key)(\s*[:=]\s*)["']?[^\s"'&,]+/gi,"$1$2[REDACTED]");
 }
 export function redactCommandOutput(value:string,passEnv:string[]=[]):string{
  let result=redactText(value);

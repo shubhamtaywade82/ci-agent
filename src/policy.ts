@@ -3,7 +3,8 @@ import { posix } from "node:path";
 import type { AgentConfig } from "./config.js";
 import type { PatchProposal } from "./types.js";
 export interface PolicyDecision { allowed:boolean; reasons:string[] }
-const ALWAYS_DENY=[/^\.github\//i,/(^|\/)\.env(?:\.|$)/i,/(^|\/)(?:secrets?|credentials?)(?:\/|\.|$)/i,/(^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|npm-shrinkwrap\.json)$/i,/(^|\/)(?:package\.json|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|.*\.csproj)$/i,/(^|\/)migrations?\//i,/\.lock$/i];
+// .nemesis holds the policy itself; a patch must never be able to loosen its own guardrails.
+const ALWAYS_DENY=[/^\.github\//i,/^\.nemesis\//i,/(^|\/)\.env(?:\.|$)/i,/(^|\/)(?:secrets?|credentials?)(?:\/|\.|$)/i,/(^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|npm-shrinkwrap\.json)$/i,/(^|\/)(?:package\.json|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|.*\.csproj)$/i,/(^|\/)migrations?\//i,/\.lock$/i];
 export function normalizeRepoPath(input:string):string|null {
  if(!input||input.includes("\0")||input.startsWith("/")||/^[A-Za-z]:[\\/]/.test(input))return null;
  const slashed=input.replaceAll("\\","/");
@@ -12,8 +13,9 @@ export function normalizeRepoPath(input:string):string|null {
  if(!normalized||normalized==="."||normalized.startsWith("../"))return null;
  return normalized;
 }
+export function isAlwaysDeniedPath(path:string):boolean {return ALWAYS_DENY.some(rule=>rule.test(path));}
 export function isDeniedPath(path:string,config:AgentConfig):boolean {
- return ALWAYS_DENY.some(rule=>rule.test(path))||config.policy.denyPaths.some(pattern=>minimatch(path,pattern,{dot:true}));
+ return isAlwaysDeniedPath(path)||config.policy.denyPaths.some(pattern=>minimatch(path,pattern,{dot:true}));
 }
 export function evaluatePaths(paths:string[],config:AgentConfig):PolicyDecision {
  const reasons:string[]=[];

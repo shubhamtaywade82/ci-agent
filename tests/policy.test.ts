@@ -16,3 +16,9 @@ describe("patch policy",()=>{
  it("rejects files over the byte budget",()=>{expect(validatePatchProposal({...proposal,files:[{path:"src/a.ts",content:"x".repeat(101)}]},config).allowed).toBe(false);});
  it("rejects non-canonical path aliases before writing Git trees",()=>{expect(validatePatchProposal({...proposal,files:[{path:"src/./a.ts",content:"ok"}]},config).allowed).toBe(false);expect(validatePatchProposal({...proposal,files:[{path:"src\\\\a.ts",content:"ok"}]},config).allowed).toBe(false);});
 });
+describe("policy self-protection",()=>{
+ it("always denies the policy directory even with a permissive allowlist",()=>{
+  const config=parseConfig({version:1,policy:{allowPaths:["**"]}});
+  expect(evaluatePaths([".nemesis/ci-agent.yml"],config).allowed).toBe(false);
+ });
+});

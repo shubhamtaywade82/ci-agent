@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Octokit } from "@octokit/rest";
+import { isAlwaysDeniedPath } from "./policy.js";
 import type { CiProvider,DraftPullRequestInput,PullRequestSnapshot,RepoHost,WorkflowRunSnapshot } from "./types.js";
 const execFileAsync=promisify(execFile);
 export class GitHubRepoHost implements RepoHost {
@@ -19,27 +20,44 @@ export class GitHubRepoHost implements RepoHost {
   return issues.some(issue=>issue.body?.includes(marker)??false);
  }
  async createIssue(input:{title:string;body:string;labels?:string[]}):Promise<void>{await this.octokit.issues.create({owner:this.owner,repo:this.repo,...input});}
+ async getFileContent(path:string,ref:string):Promise<string|null>{
+  try{
+   const {data}=await this.octokit.repos.getContent({owner:this.owner,repo:this.repo,path,ref});
+   if(Array.isArray(data)||data.type!=="file"||typeof data.content!=="string"||!data.content)return null;
+   return Buffer.from(data.content,"base64").toString("utf8");
+  }catch(error){
+   if((error as {status?:number}).status===404)return null;
+   throw error;
+  }
+ }
  async findExistingAgentFix(branchName:string):Promise<{pullRequestUrl:string|null;branchExists:boolean}>{
-  const [pulls]=await Promise.all([
-   this.octokit.paginate(this.octokit.pulls.list,{owner:this.owner,repo:this.repo,state:"open",head:this.owner+":"+branchName,per_page:100})
-  ]);
+  const pulls=await this.octokit.paginate(this.octokit.pulls.list,{owner:this.owner,repo:this.repo,state:"open",head:this.owner+":"+branchName,per_page:100});
   const existing=pulls.find(pull=>pull.head.ref===branchName&&pull.draft);
   let branchExists=false;
   try{await this.octokit.git.getRef({owner:this.owner,repo:this.repo,ref:"heads/"+branchName});branchExists=true;}
   catch(error){if((error as {status?:number}).status!==404)throw error;}
   return {pullRequestUrl:existing?.html_url??null,branchExists};
  }
+ // Rewriting a file must not silently drop its executable bit.
+ private async existingModes(treeSha:string):Promise<Map<string,string>>{
+  const {data}=await this.octokit.git.getTree({owner:this.owner,repo:this.repo,tree_sha:treeSha,recursive:"1"});
+  // ponytail: a truncated tree (huge repos) falls back to 100644 for unseen paths.
+  return new Map(data.tree.flatMap(entry=>entry.path&&entry.mode?[[entry.path,entry.mode] as [string,string]]:[]));
+ }
+ private async headSha(branch:string):Promise<string>{
+  const ref=await this.octokit.git.getRef({owner:this.owner,repo:this.repo,ref:"heads/"+branch});
+  return ref.data.object.sha;
+ }
  async createDraftPullRequest(input:DraftPullRequestInput):Promise<{url:string}>{
   if(!input.branchName.startsWith("nemesis-agent/fix-"))throw new Error("Refusing non-agent branch prefix.");
-  const protectedFile=input.files.find(file=>file.path.startsWith(".github/")||/(^|\/)(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle|\.env)/i.test(file.path)||/\.lock$/i.test(file.path)||/(^|\/)migrations?\//i.test(file.path));
+  const protectedFile=input.files.find(file=>isAlwaysDeniedPath(file.path));
   if(protectedFile)throw new Error("Protected file write refused: "+protectedFile.path);
-  const baseRef=await this.octokit.git.getRef({owner:this.owner,repo:this.repo,ref:"heads/"+input.baseBranch});
-  if(baseRef.data.object.sha!==input.baseSha)throw new Error("PR head branch changed; stale patch was not applied.");
+  if(await this.headSha(input.baseBranch)!==input.baseSha)throw new Error("PR head branch changed; stale patch was not applied.");
   const baseCommit=await this.octokit.git.getCommit({owner:this.owner,repo:this.repo,commit_sha:input.baseSha});
-  const tree=await this.octokit.git.createTree({owner:this.owner,repo:this.repo,base_tree:baseCommit.data.tree.sha,tree:input.files.map(file=>({path:file.path,mode:"100644" as const,type:"blob" as const,content:file.content}))});
+  const modes=await this.existingModes(baseCommit.data.tree.sha);
+  const tree=await this.octokit.git.createTree({owner:this.owner,repo:this.repo,base_tree:baseCommit.data.tree.sha,tree:input.files.map(file=>({path:file.path,mode:(modes.get(file.path)??"100644") as "100644"|"100755",type:"blob" as const,content:file.content}))});
   const commit=await this.octokit.git.createCommit({owner:this.owner,repo:this.repo,message:"fix: propose bounded CI agent patch",tree:tree.data.sha,parents:[input.baseSha]});
-  const latestRef=await this.octokit.git.getRef({owner:this.owner,repo:this.repo,ref:"heads/"+input.baseBranch});
-  if(latestRef.data.object.sha!==input.baseSha)throw new Error("PR head branch moved during patch creation; no branch or PR was published.");
+  if(await this.headSha(input.baseBranch)!==input.baseSha)throw new Error("PR head branch moved during patch creation; no branch or PR was published.");
   await this.octokit.git.createRef({owner:this.owner,repo:this.repo,ref:"refs/heads/"+input.branchName,sha:commit.data.sha});
   const pr=await this.octokit.pulls.create({owner:this.owner,repo:this.repo,title:input.title,body:input.body,head:input.branchName,base:input.baseBranch,draft:true,maintainer_can_modify:false});
   return {url:pr.data.html_url};
@@ -55,7 +73,8 @@ export class GitHubActionsCiProvider implements CiProvider {
  async getFailedLogs(runId:string):Promise<string>{
   if(!/^\d+$/.test(runId))throw new Error("Invalid workflow run id.");
   const {stdout}=await execFileAsync("gh",["run","view",runId,"--repo",this.owner+"/"+this.repo,"--log-failed"],{env:{...process.env,GH_TOKEN:this.token},maxBuffer:5*1024*1024,timeout:30000});
-  return stdout.slice(0,100000);
+  // Failures surface at the end of a log; keep the tail, not the setup noise.
+  return stdout.slice(-100000);
  }
 }
 export function repositoryFromEnv():{owner:string;repo:string;fullName:string}{
