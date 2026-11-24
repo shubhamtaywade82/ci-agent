@@ -26,7 +26,8 @@ if(mode==="review"){
  if(!Number.isInteger(pr)||pr<1)throw new Error("PR_NUMBER is required.");
  let fork=false;
  if(process.env.GITHUB_EVENT_PATH){const payload=JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH,"utf8")) as {pull_request?:{head?:{repo?:{full_name?:string}}}};fork=(payload.pull_request?.head?.repo?.full_name??fullName)!==fullName;}
- const result=await runReview({pr,repository:fullName,repo:host,llm,audit,config,model:model(config.llm.reviewModelEnv),isFork:fork});
+ const expectedHeadSha=process.env.INPUT_EXPECTED_HEAD_SHA?.trim();
+ const result=await runReview({pr,repository:fullName,repo:host,llm,audit,config,model:model(config.llm.reviewModelEnv),isFork:fork,...(expectedHeadSha?{expectedHeadSha}:{})});
  console.log("Review posted; actionable findings: "+result.findings.length);
 }else if(mode==="fix"){
  const runId=process.env.INPUT_WORKFLOW_RUN_ID;const pr=Number(process.env.INPUT_PR_NUMBER);

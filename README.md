@@ -6,7 +6,7 @@ Policy-gated CI agents for GitHub repositories: pull-request review, CI failure 
 
 ## Features
 
-- **PR review:** reads changed-file patches through GitHub API, filters protected paths, chunks context, validates structured findings, checks reported files and added lines, deduplicates and posts one consolidated comment. Fork and draft PRs are excluded.
+- **PR review:** reads changed-file patches through the GitHub API, filters protected paths, chunks context, validates structured findings, checks reported files and added lines, deduplicates and posts one consolidated comment. Fork and draft PRs are excluded.
 - **Autofix:** reacts to failed workflow runs, requires a same-repository PR, unchanged head SHA, explicit opt-in label and bounded attempt count; creates a low-risk/high-confidence patch as a stacked draft PR against the contributor PR branch. It never commits to the contributor branch or merges.
 - **Improvement scan:** executes only explicitly configured deterministic commands, records command outcomes, asks the model to rank evidence-backed priorities and opens deduplicated issues.
 - **Auditing:** JSONL records include evidence hashes and decision metadata, never raw source or credential values.
@@ -15,7 +15,7 @@ Policy-gated CI agents for GitHub repositories: pull-request review, CI failure 
 ## Requirements
 
 - Node.js 24+
-- GitHub Actions (included workflows)
+- GitHub Actions
 - Ollama Cloud API key and model variables
 - GitHub App installation token for draft autofix PR creation
 
@@ -74,21 +74,32 @@ audit:
 
 Source transmission defaults to **off**. For private/internal repositories, set `sendSourceToCloud: true` only after repository-owner approval. Public code can use `classification: public`. Credentials are not added to model prompts.
 
-Configured commands run with `shell: false`, a per-command timeout and a minimal environment. GitHub/Ollama secrets are not inherited. Additional variables are forwarded only by explicitly naming them in `toolchain.passEnv`.
+Configured commands run with `shell: false`, a per-command timeout and a minimal environment. GitHub/Ollama secrets are not inherited. Additional variables are forwarded only by explicitly naming them in `toolchain.passEnv`; explicitly forwarded values are redacted from evidence before it reaches the model.
 
 ## GitHub Actions setup
 
-The repository includes workflows for verification, PR review, failed-CI autofix and weekly scans. For consumers after an npm release:
+The included review workflow deliberately does **not** run on `pull_request` with secrets. It uses trusted default-branch workflow code and supports two triggers:
 
-```yaml
-- uses: shubhamtaywade82/ci-agent@v0.1.0
-  with:
-    mode: review
-    pr-number: ${{ github.event.pull_request.number }}
-  env:
-    OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-    OLLAMA_MODEL_REVIEW: ${{ vars.OLLAMA_MODEL_REVIEW }}
+1. **Comment command:** write `/nemesis review` on a pull request. Only comments from OWNER, MEMBER or COLLABORATOR associations are accepted.
+2. **GitHub App dispatch:** a trusted webhook dispatcher can send a `repository_dispatch` event of type `ci-agent-review` with a PR number and expected head SHA.
+
+Example dispatch payload:
+
+```json
+{
+  "event_type": "ci-agent-review",
+  "client_payload": {
+    "pr_number": 42,
+    "head_sha": "0123456789abcdef0123456789abcdef01234567"
+  }
+}
 ```
+
+The dispatcher should listen for `pull_request` opened/synchronize/reopened events, reject fork and draft PRs, and send the event using a repository-scoped GitHub App installation token. The review action verifies that the PR head still matches the dispatched SHA before sending the diff to the model. The webhook dispatcher itself is an external integration point; this repository includes the receiving workflow contract.
+
+GitHub's `issue_comment` event runs workflow code from the default branch, and the review workflow checks out only trusted default-branch code. It reads PR diffs through the GitHub API; it never checks out or executes PR source.
+
+For other repositories, copy the included `ai-review.yml` pattern and configure `OLLAMA_API_KEY` plus `OLLAMA_MODEL_REVIEW`. The review workflow needs `contents: read`, `pull-requests: read` and `issues: write` permissions.
 
 Configure repository variables/secrets:
 
@@ -116,17 +127,19 @@ Evidence collection executes only explicitly configured argv arrays; commands ar
 ## Architecture
 
 ```text
-GitHub event -> trusted agent code -> deterministic evidence -> policy engine
-            -> Ollama Cloud adapter -> schema validation -> GitHub adapter -> audit
-            -> existing CI + human review
+Trusted GitHub event -> trusted default-branch workflow -> API evidence -> policy engine
+                   -> Ollama Cloud adapter -> schema validation -> RepoHost action
+                   -> JSONL audit -> existing CI + human review
 ```
 
 Core modules depend on ports (`RepoHost`, `CiProvider`, `LlmPort`, `AuditStore`). GitHub and Ollama integrations are adapters. Ollama SDK 1.26.x is used directly. Ollama Cloud currently rejects the request `format` option for structured output, so this adapter requests JSON in the prompt and validates the response locally using the SDK's `parseStructuredOutput` helper.
 
 ## Security
 
+- PR review uses `issue_comment` / `repository_dispatch`, which run workflow definitions from the default branch.
 - Never use `pull_request_target` with PR checkout.
-- Review checks out the PR **base SHA** and fetches diff data through GitHub API; PR code is not executed.
+- Never run a privileged review workflow based on a PR-controlled workflow file.
+- Review checks out the default branch and fetches diff data through the GitHub API; PR code is not executed.
 - Autofix checks out trusted default-branch code, never PR head code.
 - Fork PRs are excluded from review and autofix cloud calls.
 - No automatic approval, merge or commit to contributor branches.
@@ -134,6 +147,7 @@ Core modules depend on ports (`RepoHost`, `CiProvider`, `LlmPort`, `AuditStore`)
 - Model output is untrusted and schema-validated; paths and patch budgets are checked again.
 - Retry attempts, chunks, file count, bytes and model output are bounded.
 - Cloud source transmission requires explicit repository policy approval.
+- Scan commands run without GitHub/Ollama secrets by default; explicit environment forwarding is redacted before evidence is sent to the model.
 - Audit stores hashes/metadata only.
 - Pin third-party Actions to reviewed commit SHAs for production.
 
@@ -150,4 +164,5 @@ Unit tests are deterministic and do not require Ollama credentials or network ac
 
 - Inline review comments are not included; findings are consolidated into one PR conversation comment.
 - Scan collection executes explicit commands only. Broader npm/pnpm/yarn, Python, Go, Rust, JVM, .NET and infrastructure analyzers can be added as deterministic adapters.
+- Automatic PR update events require an installed GitHub App webhook dispatcher; `/nemesis review` provides an immediate comment-based path.
 - The included GitHub Action builds from source at runtime; publish a tagged release before external repositories consume the Action.

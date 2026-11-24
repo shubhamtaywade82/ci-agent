@@ -26,4 +26,9 @@ describe("review agent",()=>{
   await expect(runReview({pr:2,repository:"org/repo",repo:fixture(),llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test",isFork:true})).rejects.toThrow(/fork/);
   expect(llm.generateStructured).not.toHaveBeenCalled();
  });
+ it("refuses stale repository-dispatch events before calling the model",async()=>{
+  const llm:LlmPort={generateStructured:vi.fn()};
+  await expect(runReview({pr:2,repository:"org/repo",repo:fixture(),llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test",expectedHeadSha:"stale-sha"})).rejects.toThrow(/head SHA changed/);
+  expect(llm.generateStructured).not.toHaveBeenCalled();
+ });
 });

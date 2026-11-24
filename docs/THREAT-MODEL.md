@@ -3,12 +3,15 @@
 | Threat | Control |
 |---|---|
 | Prompt injection in repository content/logs | Treat all retrieved text as data; model has no tools |
-| Fork PR secret exposure | Fork events excluded; no privileged PR checkout |
-| PR-code execution in privileged jobs | Review checks out base SHA; workflow_run fix checks out default branch |
+| Fork PR secret exposure | Review workflow is triggered by trusted default-branch events; fork PRs are rejected before model invocation |
+| PR-controlled workflow execution | Review uses issue_comment/repository_dispatch; workflow exists on and runs from default branch |
+| Privileged PR-code execution | Review reads diff via API; workflow_run fix checks out default branch; no PR-head checkout |
 | Path traversal | Reject absolute paths, drive paths and parent traversal |
 | Workflow/credential changes | Hard-deny .github, env/secret files, manifests, lockfiles and migrations |
-| Malicious patch output | Zod validation, path policy, confidence/risk gate, file/byte budgets, draft PR only |
+| Malicious patch output | Zod validation, path policy, confidence/risk gate, file/byte budget, draft PR only |
 | Credential misuse | Short-lived repository-scoped GitHub App token |
+| Secrets exposed to scan commands | Commands run with a minimal environment; explicit passEnv allowlist; allowlisted values redacted from evidence |
+| Runaway command | Per-command deadline and process termination |
 | CI retry loop | Workflow attempt budget; no auto-merge |
 | Audit leakage | Store hashes and metadata only |
 

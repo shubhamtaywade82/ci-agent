@@ -16,6 +16,9 @@ inputs:
   pr-number:
     description: Pull request number
     required: false
+  expected-head-sha:
+    description: Expected pull request head SHA from a trusted dispatcher event
+    required: false
   workflow-run-id:
     description: Failed workflow run ID
     required: false
@@ -38,6 +41,7 @@ runs:
         INPUT_CONFIG: ${{ inputs.config }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
         INPUT_PR_NUMBER: ${{ inputs.pr-number }}
+        INPUT_EXPECTED_HEAD_SHA: ${{ inputs.expected-head-sha }}
         INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow-run-id }}
         OLLAMA_API_KEY: ${{ env.OLLAMA_API_KEY }}
         OLLAMA_MODEL_REVIEW: ${{ env.OLLAMA_MODEL_REVIEW }}

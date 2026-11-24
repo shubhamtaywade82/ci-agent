@@ -1,11 +1,11 @@
 # Architecture
 
 ```text
-GitHub event -> task router -> deterministic evidence collectors -> policy engine
-                                                        -> Ollama LLM port
-                                                        -> schema validation
-                                                        -> GitHub RepoHost
-                                                        -> audit sink
+Trusted GitHub event -> default-branch agent workflow -> task router
+  -> GitHub API evidence / deterministic workspace collectors
+  -> policy engine -> Ollama LLM port -> schema validation
+  -> GitHub RepoHost (comment / issue / draft PR) -> audit sink
+  -> existing CI + human acceptance
 ```
 
 ## Ports
@@ -17,6 +17,10 @@ GitHub event -> task router -> deterministic evidence collectors -> policy engin
 - Workspace collectors: deterministic profile discovery and explicitly configured command execution.
 
 Core logic does not depend on GitHub request types. Model output cannot invoke tools or change permissions.
+
+## Trusted review triggers
+
+The built-in review workflow is defined and executed from the default branch using `issue_comment` and `repository_dispatch`. An authorized collaborator can comment `/nemesis review`; an installed GitHub App dispatcher can send `ci-agent-review` with a PR number and expected head SHA. No privileged `pull_request` workflow runs model calls or consumes Ollama secrets.
 
 ## Trust boundary
 

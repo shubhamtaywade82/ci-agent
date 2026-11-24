@@ -17,7 +17,7 @@ function addedLines(patch:string):Set<number>{
  }
  return lines;
 }
-export async function runReview(input:{pr:number;repository:string;repo:RepoHost;llm:LlmPort;audit:AuditStore;config:AgentConfig;model:string;isFork?:boolean}):Promise<{summary:string;findings:Finding[]}>{
+export async function runReview(input:{pr:number;repository:string;repo:RepoHost;llm:LlmPort;audit:AuditStore;config:AgentConfig;model:string;isFork?:boolean;expectedHeadSha?:string}):Promise<{summary:string;findings:Finding[]}>{
  const {pr,repository,repo,llm,audit,config,model}=input;
  if(!config.enabled||!config.modes.review.enabled||config.modes.review.autonomy==="disabled")throw new Error("Review mode disabled by policy.");
  if(input.isFork)throw new Error("Cloud review is disabled for fork-originated pull requests.");
@@ -25,6 +25,7 @@ export async function runReview(input:{pr:number;repository:string;repo:RepoHost
  const pull=await repo.getPullRequest(pr);
  if(pull.draft)throw new Error("Draft pull requests are not reviewed.");
  if(pull.headRepoFullName!==repository)throw new Error("Review is restricted to same-repository pull requests.");
+ if(input.expectedHeadSha&&pull.headSha!==input.expectedHeadSha)throw new Error("PR head SHA changed since the trusted review dispatch.");
  const all=await repo.getDiff(pr);
  const eligible=all.filter(file=>file.patch!==null&&evaluatePaths([file.path],config).allowed&&!config.dataPolicy.redactPaths.some(pattern=>minimatch(file.path,pattern,{dot:true})));
  const maxChars=Math.floor(config.modes.review.maxInputChars/config.modes.review.maxChunks);
