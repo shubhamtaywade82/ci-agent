@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    name: deterministic verify (offline, hermetic)
+    name: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
