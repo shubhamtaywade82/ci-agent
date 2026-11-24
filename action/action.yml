@@ -1,0 +1,67 @@
+name: nemesis ci-agent
+description: >-
+  Policy-gated PR review, failed-CI diagnosis with draft fixes, and scheduled
+  improvement scans. Fail-closed, never auto-merges. Review posts COMMENT-only
+  reviews; fix requires an opt-in label and a GitHub App token; scan creates
+  deduplicated issues.
+author: nemesis-oss
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  mode:
+    description: "auto | review | fix | scan | doctor | validate"
+    required: false
+    default: auto
+  config:
+    description: "Path to the policy manifest (.nemesis/ci-agent.yml)"
+    required: false
+    default: .nemesis/ci-agent.yml
+  github-token:
+    description: >-
+      GitHub token. Defaults to github.token. Autofix requires a GitHub App
+      installation token (GITHUB_TOKEN pushes do not trigger workflows).
+    required: false
+    default: ""
+  pr-number:
+    description: "Pull request number (review / fix modes)"
+    required: false
+    default: ""
+  expected-head-sha:
+    description: "Expected PR head SHA from a trusted dispatcher event (review)"
+    required: false
+    default: ""
+  workflow-run-id:
+    description: "Failed workflow run ID (fix mode)"
+    required: false
+    default: ""
+  ollama-api-key:
+    description: "Ollama Cloud API key (usually secrets.OLLAMA_API_KEY)"
+    required: false
+    default: ""
+  ollama-host:
+    description: "Ollama Cloud endpoint"
+    required: false
+    default: https://ollama.com
+  model-review:
+    description: "Review model tag (usually vars.OLLAMA_MODEL_REVIEW)"
+    required: false
+    default: ""
+  model-fix:
+    description: "Autofix model tag (usually vars.OLLAMA_MODEL_FIX)"
+    required: false
+    default: ""
+  model-scan:
+    description: "Scan model tag (usually vars.OLLAMA_MODEL_SCAN)"
+    required: false
+    default: ""
+  ollama-model:
+    description: "Default model tag (usually vars.OLLAMA_MODEL) when per-mode tags are unset"
+    required: false
+    default: ""
+
+runs:
+  using: node20
+  main: dist/index.js
