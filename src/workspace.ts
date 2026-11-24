@@ -31,20 +31,39 @@ export function redactText(value:string):string{
   .replace(/(Bearer\s+)[A-Za-z0-9._~-]+/gi,"$1[REDACTED]")
   .replace(/(password|secret|token|api[_-]?key)(\s*[:=]\s*)["']?[^\s"'&,]+/gi,"$1$2[REDACTED]");
 }
+export function redactCommandOutput(value:string,passEnv:string[]=[]):string{
+ let result=redactText(value);
+ for(const key of passEnv){
+  const secret=process.env[key];
+  if(secret&&secret.length>=4)result=result.split(secret).join("[REDACTED_ENV:"+key+"]");
+ }
+ return result;
+}
 export async function collectEvidence(input:{config:AgentConfig;repository:string;sha:string;root?:string}):Promise<EvidenceBundle>{
  const root=input.root??process.cwd();const profile=await discoverProject(root);const findings:Finding[]=[];const metrics:Record<string,number>={configuredCommands:Object.keys(input.config.toolchain.commands).length};
  for(const [name,argv] of Object.entries(input.config.toolchain.commands)){
-  const result=await runCommand(argv,root);metrics["command."+name+".exitCode"]=result.code;
-  const excerpt=redactText(result.output).slice(0,1500);
+  const result=await runCommand(argv,root,input.config.toolchain.commandTimeoutMs,input.config.toolchain.passEnv);metrics["command."+name+".exitCode"]=result.code;
+  const excerpt=redactCommandOutput(result.output,input.config.toolchain.passEnv).slice(0,1500);
   if(result.code!==0)findings.push({id:"tool-"+name+"-"+input.sha.slice(0,8),source:name==="verify"?"ci":"test",severity:"high",fingerprint:createHash("sha256").update(name+result.output).digest("hex"),message:"Configured command "+name+" failed with exit code "+result.code+". Evidence: "+excerpt,evidenceRefs:["command:"+name],recommendation:"Inspect the failing command and add a regression test for the root cause."});
  }
  return {repository:input.repository,sha:input.sha,profile,findings,metrics};
 }
-function runCommand(argv:string[],cwd:string):Promise<{code:number;output:string}>{
+export function runCommand(argv:string[],cwd:string,timeoutMs=120000,passEnv:string[]=[]):Promise<{code:number;output:string}>{
  return new Promise((resolve,reject)=>{
   const [executable,...args]=argv;if(!executable)return resolve({code:1,output:"Missing executable"});
-  const child=spawn(executable,args,{cwd,env:{...process.env,CI:"true"},shell:false,windowsHide:true});
-  let output="";const append=(chunk:Buffer)=>{output+=chunk.toString("utf8");if(output.length>20000)output=output.slice(-20000);};
-  child.stdout.on("data",append);child.stderr.on("data",append);child.on("error",reject);child.on("close",code=>resolve({code:code??1,output}));
+  const commandEnv:NodeJS.ProcessEnv={};
+  for(const key of ["PATH","HOME","TMPDIR","TEMP","TMP","SYSTEMROOT","WINDIR","PATHEXT","COMSPEC","LANG","LC_ALL"]){
+   const value=process.env[key];if(value!==undefined)commandEnv[key]=value;
+  }
+  for(const key of passEnv){const value=process.env[key];if(value!==undefined)commandEnv[key]=value;}
+  commandEnv.CI="true";
+  const child=spawn(executable,args,{cwd,env:commandEnv,shell:false,windowsHide:true});
+  let output="";let timedOut=false;let killTimer:NodeJS.Timeout|undefined;
+  const timeout=setTimeout(()=>{timedOut=true;child.kill("SIGTERM");killTimer=setTimeout(()=>child.kill("SIGKILL"),5000);},timeoutMs);
+  const cleanup=()=>{clearTimeout(timeout);if(killTimer)clearTimeout(killTimer);};
+  const append=(chunk:Buffer)=>{output+=chunk.toString("utf8");if(output.length>20000)output=output.slice(-20000);};
+  child.stdout.on("data",append);child.stderr.on("data",append);
+  child.on("error",error=>{cleanup();reject(error);});
+  child.on("close",code=>{cleanup();resolve({code:timedOut?124:code??1,output:timedOut?output+"\n[CI Agent] Command timed out after "+timeoutMs+"ms.":output});});
  });
 }

@@ -12,8 +12,10 @@ export const AgentConfigSchema = z.object({
   }).strict().default({ name: "auto", type: "auto" }),
   toolchain: z.object({
     adapter: z.string().default("auto"),
-    commands: z.record(z.string(), z.array(z.string().min(1)).min(1)).default({})
-  }).strict().default({ adapter: "auto", commands: {} }),
+    commands: z.record(z.string(), z.array(z.string().min(1)).min(1)).default({}),
+    commandTimeoutMs: z.number().int().min(1000).max(600000).default(120000),
+    passEnv: strings.default([])
+  }).strict().default({ adapter: "auto", commands: {}, commandTimeoutMs: 120000, passEnv: [] }),
   modes: z.object({
     review: z.object({
       enabled: z.boolean().default(true),

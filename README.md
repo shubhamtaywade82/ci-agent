@@ -36,6 +36,8 @@ toolchain:
   adapter: auto
   commands:
     verify: ["npm", "test"]
+  commandTimeoutMs: 120000
+  passEnv: []
 modes:
   review:
     enabled: true
@@ -72,6 +74,8 @@ audit:
 
 Source transmission defaults to **off**. For private/internal repositories, set `sendSourceToCloud: true` only after repository-owner approval. Public code can use `classification: public`. Credentials are not added to model prompts.
 
+Configured commands run with `shell: false`, a per-command timeout and a minimal environment. GitHub/Ollama secrets are not inherited. Additional variables are forwarded only by explicitly naming them in `toolchain.passEnv`.
+
 ## GitHub Actions setup
 
 The repository includes workflows for verification, PR review, failed-CI autofix and weekly scans. For consumers after an npm release:
@@ -107,7 +111,7 @@ nemesis-ci policy-check --config .nemesis/ci-agent.yml --paths src/index.ts,test
 nemesis-ci evidence --config .nemesis/ci-agent.yml
 ```
 
-Evidence collection executes only explicitly configured argv arrays with `shell: false`; commands are never guessed.
+Evidence collection executes only explicitly configured argv arrays; commands are never guessed.
 
 ## Architecture
 
@@ -146,4 +150,4 @@ Unit tests are deterministic and do not require Ollama credentials or network ac
 
 - Inline review comments are not included; findings are consolidated into one PR conversation comment.
 - Scan collection executes explicit commands only. Broader npm/pnpm/yarn, Python, Go, Rust, JVM, .NET and infrastructure analyzers can be added as deterministic adapters.
-- The included GitHub Action builds from source at runtime; publish a tagged release before referencing it from other repositories.
+- The included GitHub Action builds from source at runtime; publish a tagged release before external repositories consume the Action.

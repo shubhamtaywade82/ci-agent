@@ -7,6 +7,8 @@ toolchain:
   adapter: node
   commands:
     verify: ["npm", "run", "verify"]
+  commandTimeoutMs: 120000
+  passEnv: []
 modes:
   review:
     enabled: true
@@ -27,7 +29,7 @@ modes:
 policy:
   autoMerge: false
   requireHumanApproval: true
-  allowPaths: ["src/**", "test/**", "tests/**", "docs/**", "README.md", "*.md"]
+  allowPaths: ["src/**", "tests/**", "docs/**", "README.md", "*.md"]
   denyPaths: [".github/**", "**/*.lock", "**/package-lock.json", "**/.env*", "**/*secret*", "**/credentials*", "**/migrations/**"]
 dataPolicy:
   classification: public
