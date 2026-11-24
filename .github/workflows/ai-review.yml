@@ -1,0 +1,36 @@
+name: ai-review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  review:
+    if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Run AI review from trusted PR base
+        uses: ./
+        with:
+          mode: review
+          pr-number: ${{ github.event.pull_request.number }}
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OLLAMA_MODEL_REVIEW: ${{ vars.OLLAMA_MODEL_REVIEW }}
+      - name: Upload review audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-agent-audit-review
+          path: .nemesis/audit.jsonl
+          if-no-files-found: ignore

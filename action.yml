@@ -1,0 +1,46 @@
+name: Nemesis CI Agent
+description: Policy-gated PR review, failed-CI diagnosis with draft fixes, and scheduled improvement scans.
+author: Nemesis OSS
+inputs:
+  mode:
+    description: validate, review, fix, or scan
+    required: false
+    default: validate
+  config:
+    description: Policy configuration path
+    required: false
+    default: .nemesis/ci-agent.yml
+  github-token:
+    description: Scoped GitHub token. Autofix requires a GitHub App installation token.
+    required: false
+  pr-number:
+    description: Pull request number
+    required: false
+  workflow-run-id:
+    description: Failed workflow run ID
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install and build CI agent
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm install --no-audit --no-fund
+        npm run build
+    - name: Execute CI agent
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        INPUT_PR_NUMBER: ${{ inputs.pr-number }}
+        INPUT_WORKFLOW_RUN_ID: ${{ inputs.workflow-run-id }}
+        OLLAMA_API_KEY: ${{ env.OLLAMA_API_KEY }}
+        OLLAMA_MODEL_REVIEW: ${{ env.OLLAMA_MODEL_REVIEW }}
+        OLLAMA_MODEL_FIX: ${{ env.OLLAMA_MODEL_FIX }}
+        OLLAMA_MODEL_SCAN: ${{ env.OLLAMA_MODEL_SCAN }}
+      run: node "${{ github.action_path }}/dist/action.js"
