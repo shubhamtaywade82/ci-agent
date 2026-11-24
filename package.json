@@ -4,12 +4,26 @@
   "description": "Policy-gated CI agents for PR review, bounded autofix proposals and engineering scans.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "bin": { "nemesis-ci": "./dist/cli.js" },
-  "files": ["dist", "action.yml", "README.md", "LICENSE"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "nemesis-ci": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "action.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "clean": "rm -rf dist coverage",
     "build": "tsc -p tsconfig.build.json",
@@ -29,8 +43,12 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
-  "publishConfig": { "access": "public", "provenance": true }
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }

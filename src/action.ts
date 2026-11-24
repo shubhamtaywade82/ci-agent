@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { validateExpectedHeadSha } from "./event-validation.js";
 import { Octokit } from "@octokit/rest";
 import { loadConfig } from "./config.js";
@@ -32,10 +31,8 @@ function model(envName:string):string{return process.env[envName]??"";}
 if(mode==="review"){
  const pr=Number(process.env.INPUT_PR_NUMBER||process.env.PR_NUMBER);
  if(!Number.isInteger(pr)||pr<1)throw new Error("PR_NUMBER is required.");
- let fork=false;
- if(process.env.GITHUB_EVENT_PATH){const payload=JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH,"utf8")) as {pull_request?:{head?:{repo?:{full_name?:string}}}};fork=(payload.pull_request?.head?.repo?.full_name??fullName)!==fullName;}
  const expectedHeadSha=validateExpectedHeadSha(process.env.GITHUB_EVENT_NAME,process.env.INPUT_EXPECTED_HEAD_SHA?.trim());
- const result=await runReview({pr,repository:fullName,repo:host,llm,audit,config,model:model(config.llm.reviewModelEnv),isFork:fork,...(expectedHeadSha?{expectedHeadSha}:{})});
+ const result=await runReview({pr,repository:fullName,repo:host,llm,audit,config,model:model(config.llm.reviewModelEnv),...(expectedHeadSha?{expectedHeadSha}:{})});
  console.log("Review posted; actionable findings: "+result.findings.length);
 }else if(mode==="fix"){
  const runId=process.env.INPUT_WORKFLOW_RUN_ID;const pr=Number(process.env.INPUT_PR_NUMBER);

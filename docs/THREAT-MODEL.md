@@ -13,6 +13,9 @@
 | Secrets exposed to scan commands | Commands run with a minimal environment; explicit passEnv allowlist; allowlisted values redacted from evidence |
 | Runaway command | Per-command deadline and process termination |
 | Duplicate autofix workflow runs | Deterministic branch per PR head SHA; existing draft/orphan branch detection; workflow concurrency |
+| Policy self-modification | `.nemesis/**` is hard-denied for patches regardless of `allowPaths` |
+| Markdown/mention injection via model output | Model text is escaped (`<`, `@`, `![`) before posting comments, issues and PR bodies |
+| Silent review gaps | Comments list every file that was skipped (policy, size, chunk budget) |
 | Audit leakage | Store hashes and metadata only |
 
 ## Residual risk

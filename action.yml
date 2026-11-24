@@ -44,7 +44,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        npm install --no-audit --no-fund
+        npm ci --no-audit --no-fund
         npm run build
     - name: Execute CI agent
       shell: bash
