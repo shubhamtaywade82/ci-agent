@@ -74,3 +74,4 @@ vite.config.ts.timestamp-*
 
 # Agent runtime audit
 .nemesis/audit.jsonl
+.omc
