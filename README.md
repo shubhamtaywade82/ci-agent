@@ -216,9 +216,30 @@ provenance, via npm trusted publishing (OIDC; no npm token is stored).
 - `publish.yml` runs `npm run verify:release` (lint, build, tests and a tarball
   contents check) and publishes `core`, `ollama-cloud`, `github`, `toolchains`,
   then `cli`, skipping versions already on the registry.
-- **One-time setup on npmjs.com:** for each of the five packages, add a trusted
-  publisher for repository `shubhamtaywade82/ci-agent`, workflow
-  `release-please.yml`. A package that has never been published may need its first
-  `0.1.0` published manually before that setting is available.
-- The first `0.1.0` publish is run by hand: Actions → Release Please → Run
-  workflow. Later releases are driven by the release PR.
+### First publish (one-time bootstrap)
+
+npm only lets you attach a trusted publisher to a package that already exists,
+so the very first publish of each package is done by hand with your npm login
+and 2FA; CI cannot do it (it fails with `ENEEDAUTH`). Local publishes cannot
+produce provenance, so that flag is turned off for this one release.
+
+```bash
+npm login
+git pull && npm ci --ignore-scripts && npm run verify:release
+for p in core ollama-cloud github toolchains cli; do
+  npm publish -w packages/$p --access public --provenance=false --otp=<code>
+done
+```
+
+Publish in that order (`core` first, `cli` last). If a 2FA code expires part-way,
+re-run with a fresh code; versions already published are rejected, so skip those.
+
+Then, on npmjs.com, for each of the five packages: Settings → Trusted Publisher →
+GitHub Actions, with repository `shubhamtaywade82/ci-agent`, workflow
+`release-please.yml`, and no environment.
+
+From then on, merging a release PR publishes automatically with provenance. A
+failed or skipped publish can be retried from Actions → Release Please → Run
+workflow, which publishes the current `main` and skips versions already on the
+registry. Do not store an `NPM_TOKEN`: npm is restricting 2FA-bypass tokens, and
+OIDC needs none.
