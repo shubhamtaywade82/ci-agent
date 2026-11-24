@@ -22,7 +22,7 @@
     "@nemesis-oss/ci-agent-core": "^0.1.0",
     "@octokit/plugin-paginate-rest": "^13.0.0",
     "@octokit/plugin-rest-endpoint-methods": "^18.0.0",
-    "@octokit/rest": "^21.0.0",
+    "@octokit/rest": "^22.0.1",
     "fflate": "^0.8.3"
   }
 }
