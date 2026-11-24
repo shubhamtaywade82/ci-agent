@@ -1,6 +1,6 @@
 import { describe,it,expect,vi } from "vitest";
 import { parseConfig } from "../src/config.js";
-import { runReview,buildChunks } from "../src/review.js";
+import { runReview,buildChunks,fitLines } from "../src/review.js";
 import type { AuditStore,LlmPort,RepoHost } from "../src/types.js";
 function fixture(draft=false):RepoHost{return {
  getPullRequest:vi.fn().mockResolvedValue({number:2,title:"change",body:null,headSha:"abc",headBranch:"feature",headRepoFullName:"org/repo",baseBranch:"main",draft,labels:[]}),
@@ -61,5 +61,11 @@ describe("review agent",()=>{
   await runReview({pr:2,repository:"org/repo",repo,llm,audit:{append:vi.fn()},config:parseConfig({version:1,dataPolicy:{classification:"public"}}),model:"test"});
   const body=String(vi.mocked(repo.postComment).mock.calls[0]?.[1]);
   expect(body).not.toContain("@everyone");expect(body).not.toContain("<!-- x");expect(body).not.toContain("![i]");
+ });
+ it("truncates oversized sections and says how many entries were omitted",()=>{
+  const lines=Array.from({length:10},(_,i)=>"- finding "+i+" "+"x".repeat(90));
+  const fitted=fitLines(lines,300);
+  expect(fitted.length).toBeLessThan(lines.length);expect(fitted.at(-1)).toMatch(/more omitted/);
+  expect(fitLines(lines,100000)).toEqual(lines);
  });
 });

@@ -71,10 +71,23 @@ function formatFinding(finding:Finding):string{
  return "- **"+finding.severity.toUpperCase()+"** "+where+" — "+sanitizeMarkdown(finding.message)+advice;
 }
 
+// GitHub rejects comments over 65536 chars; each section gets its own budget so the total stays below it.
+const FINDINGS_BUDGET=40000,SKIPPED_BUDGET=10000,SUMMARY_BUDGET=10000;
+export function fitLines(lines:string[],budget:number):string[]{
+ const kept:string[]=[];let used=0;
+ for(const line of lines){
+  if(used+line.length+1>budget)break;
+  kept.push(line);used+=line.length+1;
+ }
+ const omitted=lines.length-kept.length;
+ return omitted?[...kept,"- … "+omitted+" more omitted (comment size limit)"]:kept;
+}
+
 function formatComment(summaries:string[],findings:Finding[],reviewedFiles:number,skipped:string[]):string{
- const result=findings.length?findings.map(formatFinding).join("\n"):reviewedFiles?"No actionable findings were returned.":"No files were reviewed.";
- const coverage=skipped.length?["**Not reviewed:**",...skipped.map(entry=>"- "+sanitizeMarkdown(entry))].join("\n"):"";
- return ["## Nemesis CI Agent review","",summaries.map(sanitizeMarkdown).join("\n\n"),"",result,"",coverage,"","<!-- nemesis-ci-agent:review -->"].join("\n");
+ const result=findings.length?fitLines(findings.map(formatFinding),FINDINGS_BUDGET).join("\n"):reviewedFiles?"No actionable findings were returned.":"No files were reviewed.";
+ const coverage=skipped.length?["**Not reviewed:**",...fitLines(skipped.map(entry=>"- "+sanitizeMarkdown(entry)),SKIPPED_BUDGET)].join("\n"):"";
+ const summary=summaries.map(sanitizeMarkdown).join("\n\n").slice(0,SUMMARY_BUDGET);
+ return ["## Nemesis CI Agent review","",summary,"",result,"",coverage,"","<!-- nemesis-ci-agent:review -->"].join("\n");
 }
 
 async function assertReviewable(input:ReviewInput){

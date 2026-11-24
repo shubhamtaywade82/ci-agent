@@ -1,0 +1,5 @@
+# Policy and automation changes need explicit owner review.
+/.nemesis/      @shubhamtaywade82
+/.github/       @shubhamtaywade82
+/action.yml     @shubhamtaywade82
+/src/policy.ts  @shubhamtaywade82
