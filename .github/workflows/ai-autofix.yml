@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
@@ -36,7 +36,7 @@ jobs:
       - name: Create short-lived GitHub App token
         id: app-token
         if: steps.app-credentials.outputs.configured == 'true'
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ vars.CI_AGENT_APP_ID }}
           private-key: ${{ secrets.CI_AGENT_APP_PRIVATE_KEY }}
@@ -59,7 +59,7 @@ jobs:
         run: echo "::notice::Autofix skipped. Configure CI_AGENT_APP_ID and CI_AGENT_APP_PRIVATE_KEY; default GITHUB_TOKEN is not used for fix commits."
       - name: Upload autofix audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: ci-agent-audit-autofix
           path: .nemesis/audit.jsonl
