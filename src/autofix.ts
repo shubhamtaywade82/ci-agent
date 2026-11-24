@@ -21,10 +21,12 @@ export async function runAutofix(input:{runId:string;pr:number;repository:string
  const logs=redactText((await ci.getFailedLogs(runId)).slice(0,30000));
  const proposal=await llm.generateStructured({model,system:SYSTEM,prompt:"Repository: "+repository+"\nFailed workflow run: "+runId+"\nCommit: "+run.sha+"\nAttempt: "+run.attempt+"\nFailure logs:\n"+logs,schema:PatchProposalSchema,timeoutMs:config.llm.timeoutMs,maxOutputTokens:12000});
  const decision=validatePatchProposal(proposal,config);
- await audit.append(makeAuditEvent({event:"autofix.proposal",repository,model,inputHash:sha256(logs),outputHash:sha256(JSON.stringify(proposal)),decision:decision.allowed?"allowed":"rejected",reason:decision.reasons.join("; ")||undefined,metadata:{runId,pr,files:proposal.files.length}}));
+ await audit.append(makeAuditEvent({
+  event:"autofix.proposal",repository,model,inputHash:sha256(logs),outputHash:sha256(JSON.stringify(proposal)),
+  decision:decision.allowed?"allowed":"rejected",...(decision.reasons.length?{reason:decision.reasons.join("; ")}:{}),
+  metadata:{runId,pr,files:proposal.files.length}
+ }));
  if(!decision.allowed)return {applied:false,reasons:decision.reasons};
- // Create a stacked draft PR against the failed PR branch. The GitHub adapter rechecks
- // that this exact branch still points at the failed SHA immediately before writing.
  const branchName="nemesis-agent/fix-"+runId+"-a"+run.attempt;
  const created=await repo.createDraftPullRequest({
   baseBranch:pull.headBranch,baseSha:pull.headSha,branchName,

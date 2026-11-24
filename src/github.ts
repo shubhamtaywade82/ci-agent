@@ -7,7 +7,7 @@ export class GitHubRepoHost implements RepoHost {
  constructor(private readonly octokit:Octokit,private readonly owner:string,private readonly repo:string){}
  async getPullRequest(number:number):Promise<PullRequestSnapshot>{
   const {data}=await this.octokit.pulls.get({owner:this.owner,repo:this.repo,pull_number:number});
-  return {number:data.number,title:data.title,body:data.body,headSha:data.head.sha,headBranch:data.head.ref,headRepoFullName:data.head.repo?.full_name??null,baseBranch:data.base.ref,draft:data.draft,labels:data.labels.flatMap(label=>typeof label==="string"?[label]:label.name?[label.name]:[])};
+  return {number:data.number,title:data.title,body:data.body,headSha:data.head.sha,headBranch:data.head.ref,headRepoFullName:data.head.repo?.full_name??null,baseBranch:data.base.ref,draft:data.draft??false,labels:data.labels.flatMap(label=>typeof label==="string"?[label]:label.name?[label.name]:[])};
  }
  async getDiff(number:number){
   const files=await this.octokit.paginate(this.octokit.pulls.listFiles,{owner:this.owner,repo:this.repo,pull_number:number,per_page:100});
@@ -40,7 +40,7 @@ export class GitHubActionsCiProvider implements CiProvider {
  async getWorkflowRun(runId:string):Promise<WorkflowRunSnapshot>{
   if(!/^\d+$/.test(runId))throw new Error("Invalid workflow run id.");
   const {data}=await this.octokit.actions.getWorkflowRun({owner:this.owner,repo:this.repo,run_id:Number(runId)});
-  return {id:String(data.id),repository:this.owner+"/"+this.repo,conclusion:data.conclusion,sha:data.head_sha,branch:data.head_branch,attempt:data.run_attempt,pullRequest:data.pull_requests[0]?.number??null,headRepoFullName:data.head_repository?.full_name??null};
+  return {id:String(data.id),repository:this.owner+"/"+this.repo,conclusion:data.conclusion??null,sha:data.head_sha??"",branch:data.head_branch??"",attempt:data.run_attempt??1,pullRequest:data.pull_requests?.[0]?.number??null,headRepoFullName:data.head_repository?.full_name??null};
  }
  async getFailedLogs(runId:string):Promise<string>{
   if(!/^\d+$/.test(runId))throw new Error("Invalid workflow run id.");

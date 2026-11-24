@@ -44,8 +44,15 @@ export async function runReview(input:{pr:number;repository:string;repo:RepoHost
    const path=finding.path?normalizeRepoPath(finding.path):undefined;
    const source=path?eligible.find(file=>file.path===path):undefined;
    if(finding.path&&!source)continue;
-   if(finding.line&&source?.patch&&!addedLines(source.patch).has(finding.line))continue;
-   findings.push(finding);
+   if(finding.line!==undefined&&source?.patch&&!addedLines(source.patch).has(finding.line))continue;
+   const validFinding:Finding={
+    id:finding.id,source:finding.source,severity:finding.severity,fingerprint:finding.fingerprint,
+    message:finding.message,evidenceRefs:finding.evidenceRefs,
+    ...(path?{path}:{}),
+    ...(finding.line!==undefined?{line:finding.line}:{}),
+    ...(finding.recommendation!==undefined?{recommendation:finding.recommendation}:{})
+   };
+   findings.push(validFinding);
   }
  }
  const unique=[...new Map(findings.map(f=>[f.fingerprint,f])).values()];
