@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/ci-agent-github",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub RepoHost and GitHub Actions CiProvider adapters for the ci-agent core.",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@nemesis-oss/ci-agent-core": "^0.1.0",
+    "@nemesis-oss/ci-agent-core": "^0.1.1",
     "@octokit/plugin-paginate-rest": "^16.0.0",
     "@octokit/plugin-rest-endpoint-methods": "^18.0.0",
     "@octokit/rest": "^22.0.1",
