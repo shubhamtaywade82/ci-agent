@@ -14,4 +14,5 @@ describe("patch policy",()=>{
  it("rejects a non-high-confidence proposal",()=>{expect(validatePatchProposal({...proposal,confidence:"medium"},config).allowed).toBe(false);});
  it("rejects elevated risk",()=>{expect(validatePatchProposal({...proposal,risk:"high"},config).allowed).toBe(false);});
  it("rejects files over the byte budget",()=>{expect(validatePatchProposal({...proposal,files:[{path:"src/a.ts",content:"x".repeat(101)}]},config).allowed).toBe(false);});
+ it("rejects non-canonical path aliases before writing Git trees",()=>{expect(validatePatchProposal({...proposal,files:[{path:"src/./a.ts",content:"ok"}]},config).allowed).toBe(false);expect(validatePatchProposal({...proposal,files:[{path:"src\\\\a.ts",content:"ok"}]},config).allowed).toBe(false);});
 });

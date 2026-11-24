@@ -35,6 +35,7 @@ export function validatePatchProposal(proposal:PatchProposal,config:AgentConfig)
  for(const file of proposal.files){
   const path=normalizeRepoPath(file.path);
   if(!path)reasons.push("Unsafe patch path: "+file.path);
+  else if(path!==file.path)reasons.push("Patch path must be normalized: "+file.path);
   else if(seen.has(path))reasons.push("Duplicate patch path: "+path);
   else seen.add(path);
   if(Buffer.byteLength(file.content,"utf8")>config.modes.fix.maxFileBytes)reasons.push("File exceeds size limit: "+file.path);
