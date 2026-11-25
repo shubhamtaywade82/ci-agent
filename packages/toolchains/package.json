@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/ci-agent-toolchains",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Project discovery: toolchain detection registry (npm/pnpm/yarn/bun/uv/poetry/pip/go/cargo/maven/gradle/dotnet/docker/terraform/make) and report parsers.",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@nemesis-oss/ci-agent-core": "^0.1.1",
+    "@nemesis-oss/ci-agent-core": "^0.1.2",
     "fast-xml-parser": "^5.0.0"
   },
   "files": [

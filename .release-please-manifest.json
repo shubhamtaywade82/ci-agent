@@ -1,7 +1,7 @@
 {
-  "packages/core": "0.1.1",
-  "packages/ollama-cloud": "0.1.1",
-  "packages/github": "0.1.1",
-  "packages/toolchains": "0.1.1",
-  "packages/cli": "0.1.1"
+  "packages/core": "0.1.2",
+  "packages/ollama-cloud": "0.1.2",
+  "packages/github": "0.1.2",
+  "packages/toolchains": "0.1.2",
+  "packages/cli": "0.1.2"
 }
