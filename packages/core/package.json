@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/ci-agent-core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Repo-agnostic CI agent core: ports, policy engine, manifest, task router, and review/fix/scan orchestrators. Deterministic tools first; LLM advisory layer isolated behind a fail-closed port.",
   "type": "module",
   "license": "MIT",

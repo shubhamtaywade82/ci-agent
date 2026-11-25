@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/ci-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CI agent CLI: advisory review/fix/scan for any repository. Deterministic core, LLM advisory layer behind a fail-closed port, Ollama Cloud via @nemesis-oss/ollama-sdk.",
   "type": "module",
   "license": "MIT",
@@ -22,10 +22,10 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@nemesis-oss/ci-agent-core": "^0.1.1",
-    "@nemesis-oss/ci-agent-ollama-cloud": "^0.1.1",
-    "@nemesis-oss/ci-agent-github": "^0.1.1",
-    "@nemesis-oss/ci-agent-toolchains": "^0.1.1",
+    "@nemesis-oss/ci-agent-core": "^0.1.2",
+    "@nemesis-oss/ci-agent-ollama-cloud": "^0.1.2",
+    "@nemesis-oss/ci-agent-github": "^0.1.2",
+    "@nemesis-oss/ci-agent-toolchains": "^0.1.2",
     "@nemesis-oss/ollama-sdk": "^1.26.0",
     "yaml": "^2.9.0"
   },

@@ -1,6 +1,6 @@
 {
   "name": "@nemesis-oss/ci-agent-ollama-cloud",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Ollama Cloud LlmPort adapter for the ci-agent core: the only package coupled to @nemesis-oss/ollama-sdk.",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@nemesis-oss/ci-agent-core": "^0.1.1",
+    "@nemesis-oss/ci-agent-core": "^0.1.2",
     "@nemesis-oss/ollama-sdk": "^1.26.0",
     "ajv": "^8.20.0"
   },
